@@ -1,0 +1,30 @@
+# npm 代理配置
+# 使用方法: 
+# 1. 开启代理: bash configs/npmrc-proxy on
+# 2. 关闭代理: bash configs/npmrc-proxy off
+
+# 检查参数
+if [ "$1" == "on" ]; then
+    echo "📦 配置npm代理..."
+    npm config set proxy http://127.0.0.1:7890
+    npm config set https-proxy http://127.0.0.1:7890
+    npm config set registry https://registry.npmjs.org/
+    echo "✅ npm代理已开启"
+    echo "HTTP代理: $(npm config get proxy)"
+    echo "HTTPS代理: $(npm config get https-proxy)"
+    echo "Registry: $(npm config get registry)"
+elif [ "$1" == "off" ]; then
+    echo "📦 移除npm代理..."
+    npm config delete proxy
+    npm config delete https-proxy
+    echo "🔴 npm代理已关闭"
+else
+    echo "使用方法:"
+    echo "  开启代理: bash configs/npmrc-proxy on"
+    echo "  关闭代理: bash configs/npmrc-proxy off"
+    echo ""
+    echo "当前配置:"
+    echo "  HTTP代理: $(npm config get proxy || echo '未设置')"
+    echo "  HTTPS代理: $(npm config get https-proxy || echo '未设置')"
+    echo "  Registry: $(npm config get registry)"
+fi 

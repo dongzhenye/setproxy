@@ -1,0 +1,30 @@
+# macOS 终端代理配置
+# 将此内容添加到 ~/.zshrc 文件中
+
+# 代理服务器配置
+PROXY_HOST="127.0.0.1"
+PROXY_PORT="7890"
+PROXY_URL="http://${PROXY_HOST}:${PROXY_PORT}"
+
+# 代理快捷命令
+alias proxy-on='export HTTP_PROXY="${PROXY_URL}" && export HTTPS_PROXY="${PROXY_URL}" && export ALL_PROXY="${PROXY_URL}" && export http_proxy="${PROXY_URL}" && export https_proxy="${PROXY_URL}" && export all_proxy="${PROXY_URL}" && export NO_PROXY="localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,100.64.0.0/10,17.0.0.0/8,169.254.0.0/16,224.0.0.0/4,240.0.0.0/4" && export no_proxy="${NO_PROXY}" && echo "✅ 代理已开启"'
+
+alias proxy-off='unset HTTP_PROXY && unset HTTPS_PROXY && unset ALL_PROXY && unset http_proxy && unset https_proxy && unset all_proxy && unset NO_PROXY && unset no_proxy && echo "🔴 代理已关闭"'
+
+alias proxy-status='echo "HTTP_PROXY: ${HTTP_PROXY:-未设置}" && echo "HTTPS_PROXY: ${HTTPS_PROXY:-未设置}" && echo "ALL_PROXY: ${ALL_PROXY:-未设置}"'
+
+# 检查代理连接的函数
+proxy-test() {
+    if command -v curl > /dev/null; then
+        echo "测试Google连接..."
+        curl -I --connect-timeout 5 https://google.com
+    else
+        echo "curl命令不可用"
+    fi
+}
+
+# 智能代理：检查Clash是否运行，如果运行则自动开启代理
+# 取消注释下面的行来启用自动代理
+# if lsof -i :7890 > /dev/null 2>&1; then
+#     proxy-on > /dev/null 2>&1
+# fi 

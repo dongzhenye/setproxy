@@ -1,0 +1,59 @@
+#!/bin/bash
+# Python pip 代理配置
+# 使用方法: 
+# 1. 开启代理: bash configs/pip-proxy on
+# 2. 关闭代理: bash configs/pip-proxy off
+
+# pip 配置文件路径
+PIP_CONFIG_DIR="$HOME/.pip"
+PIP_CONFIG_FILE="$PIP_CONFIG_DIR/pip.conf"
+
+# 检查参数
+if [ "$1" == "on" ]; then
+    echo "🐍 配置pip代理..."
+    
+    # 创建配置目录
+    mkdir -p "$PIP_CONFIG_DIR"
+    
+    # 写入配置文件
+    cat > "$PIP_CONFIG_FILE" << EOF
+[global]
+proxy = http://127.0.0.1:7890
+trusted-host = pypi.org
+               files.pythonhosted.org
+               pypi.python.org
+EOF
+    
+    echo "✅ pip代理已开启"
+    echo "配置文件位置: $PIP_CONFIG_FILE"
+    echo "代理地址: http://127.0.0.1:7890"
+    
+elif [ "$1" == "off" ]; then
+    echo "🐍 移除pip代理..."
+    
+    if [ -f "$PIP_CONFIG_FILE" ]; then
+        rm "$PIP_CONFIG_FILE"
+        echo "🔴 pip代理已关闭"
+    else
+        echo "pip配置文件不存在"
+    fi
+    
+else
+    echo "使用方法:"
+    echo "  开启代理: bash configs/pip-proxy on"
+    echo "  关闭代理: bash configs/pip-proxy off"
+    echo ""
+    echo "当前配置:"
+    if [ -f "$PIP_CONFIG_FILE" ]; then
+        echo "  配置文件存在: $PIP_CONFIG_FILE"
+        echo "  内容:"
+        cat "$PIP_CONFIG_FILE" | sed 's/^/    /'
+    else
+        echo "  配置文件不存在"
+    fi
+fi
+
+# 临时使用代理安装包的命令示例
+echo ""
+echo "💡 临时使用代理安装包:"
+echo "  pip install --proxy http://127.0.0.1:7890 package_name" 

@@ -1,0 +1,27 @@
+# Git 代理配置
+# 使用方法: 
+# 1. 开启代理: bash configs/gitconfig-proxy on
+# 2. 关闭代理: bash configs/gitconfig-proxy off
+
+# 检查参数
+if [ "$1" == "on" ]; then
+    echo "🔧 配置Git代理..."
+    git config --global http.proxy http://127.0.0.1:7890
+    git config --global https.proxy http://127.0.0.1:7890
+    echo "✅ Git代理已开启"
+    echo "HTTP代理: $(git config --global --get http.proxy)"
+    echo "HTTPS代理: $(git config --global --get https.proxy)"
+elif [ "$1" == "off" ]; then
+    echo "🔧 移除Git代理..."
+    git config --global --unset http.proxy
+    git config --global --unset https.proxy
+    echo "🔴 Git代理已关闭"
+else
+    echo "使用方法:"
+    echo "  开启代理: bash configs/gitconfig-proxy on"
+    echo "  关闭代理: bash configs/gitconfig-proxy off"
+    echo ""
+    echo "当前配置:"
+    echo "  HTTP代理: $(git config --global --get http.proxy || echo '未设置')"
+    echo "  HTTPS代理: $(git config --global --get https.proxy || echo '未设置')"
+fi 
