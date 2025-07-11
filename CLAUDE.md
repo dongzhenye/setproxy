@@ -86,3 +86,8 @@ All scripts follow these patterns:
 - The project assumes proxy software is running on port 7890
 - Configuration changes are appended to existing config files, not replacing them
 - Scripts use emoji indicators for status messages (🚀, ✅, ❌, ⚠️, etc.)
+
+## User Preferences
+
+- **Release Notes**: Keep release descriptions simple and concise, avoiding overly detailed explanations
+- **Git Commits**: All commit messages should be in English following conventional commit format
