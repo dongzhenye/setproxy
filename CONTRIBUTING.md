@@ -6,7 +6,7 @@
 
 ### 报告问题
 
-1. 在 [Issues](https://github.com/dongzhenye/proxy_config/issues) 中搜索是否已有相似问题
+1. 在 [Issues](https://github.com/dongzhenye/setproxy/issues) 中搜索是否已有相似问题
 2. 创建新 Issue 时请包含：
    - macOS 版本
    - 使用的代理工具（Clash/V2Ray/Surge等）

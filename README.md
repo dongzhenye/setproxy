@@ -1,4 +1,4 @@
-# macOS 终端代理配置指南
+# setproxy - macOS 终端代理配置工具
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-macOS-blue.svg)](https://www.apple.com/macos/)
@@ -20,8 +20,13 @@
 虽然代理客户端（如Clash、V2Ray、Surge等）已经开启系统代理，但**macOS终端默认不会自动使用系统代理**。
 
 ### 一键解决方案
+
 ```bash
-# 执行一键配置脚本（仅需一次）
+# 1. 克隆项目
+git clone https://github.com/dongzhenye/setproxy.git
+cd setproxy
+
+# 2. 执行配置脚本（仅需一次）
 source setup-proxy.sh
 ```
 
@@ -56,7 +61,7 @@ echo $HTTP_PROXY
 ## 📁 项目结构
 
 ```
-proxy_config/
+setproxy/
 ├── README.md              # 使用说明
 ├── setup-proxy.sh         # 一键配置脚本
 └── configs/               # 配置文件模板
@@ -146,7 +151,7 @@ rm -f ~/.pip/pip.conf
 ## 维护者
 
 - **作者**：Dong Zhenye
-- **联系**：通过 [GitHub Issues](https://github.com/dongzhenye/proxy_config/issues) 联系
+- **联系**：通过 [GitHub Issues](https://github.com/dongzhenye/setproxy/issues) 联系
 
 ## 贡献
 
