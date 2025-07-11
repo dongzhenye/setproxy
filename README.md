@@ -1,5 +1,9 @@
 # macOS 终端代理配置指南
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Platform](https://img.shields.io/badge/platform-macOS-blue.svg)](https://www.apple.com/macos/)
+[![Shell](https://img.shields.io/badge/shell-bash-green.svg)](https://www.gnu.org/software/bash/)
+
 一键解决 macOS 终端不走代理的问题，支持所有主流代理工具。
 
 ## 🎯 支持的代理工具
@@ -113,6 +117,41 @@ proxy-test
 2. **网络切换**：更换网络环境时重新执行 `proxy-on`
 3. **首次使用**：如果命令不生效，执行 `source ~/.zshrc` 重新加载
 
+## 🗑️ 卸载
+
+如需完全卸载配置：
+
+```bash
+# 1. 从 ~/.zshrc 中删除配置
+sed -i '' '/# === macOS 终端代理配置 ===/,/# === macOS 终端代理配置 ===/d' ~/.zshrc
+
+# 2. 删除 Git 代理配置
+git config --global --unset http.proxy
+git config --global --unset https.proxy
+
+# 3. 删除 npm 代理配置（如已安装）
+npm config delete proxy
+npm config delete https-proxy
+
+# 4. 删除 pip 配置文件（如已创建）
+rm -f ~/.pip/pip.conf
+```
+
+## 系统要求
+
+- macOS 10.15 或更高版本
+- zsh（macOS 默认 shell）
+- 基础命令行工具：curl、lsof、git（通过 Xcode Command Line Tools 安装）
+
+## 维护者
+
+- **作者**：Dong Zhenye
+- **联系**：通过 [GitHub Issues](https://github.com/dongzhenye/proxy_config/issues) 联系
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
 ## 许可证
 
-MIT License 
+[MIT License](LICENSE) 
