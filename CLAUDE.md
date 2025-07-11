@@ -65,14 +65,14 @@ The project uses a modular approach with separate configuration scripts for each
 
 All scripts follow these patterns:
 - Accept "on" or "off" as arguments for enabling/disabling proxy
-- Use proxy server at 127.0.0.1:7890 (Clash default)
+- Use proxy server at 127.0.0.1:7890 (common proxy port)
 - Add clear markers to configuration files for easy identification
 - Check for existing configurations to avoid duplication
 - Handle missing tools gracefully with warning messages
 
 ## Key Technical Details
 
-- **Proxy Server**: `127.0.0.1:7890` (hardcoded for Clash compatibility)
+- **Proxy Server**: `127.0.0.1:7890` (default port for most proxy tools)
 - **Shell**: Assumes zsh (default on modern macOS)
 - **NO_PROXY**: Excludes local networks, private IP ranges, and macOS-specific subnets
 - **Configuration Markers**: Uses `# === macOS 终端代理配置 ===` to mark added configurations
@@ -83,6 +83,6 @@ All scripts follow these patterns:
 
 - All documentation and user messages are in Chinese - maintain this convention
 - Scripts are idempotent - safe to run multiple times
-- The project assumes Clash for Windows is running on port 7890
+- The project assumes proxy software is running on port 7890
 - Configuration changes are appended to existing config files, not replacing them
 - Scripts use emoji indicators for status messages (🚀, ✅, ❌, ⚠️, etc.)

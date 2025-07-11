@@ -1,9 +1,19 @@
 # macOS 终端代理配置指南
 
+一键解决 macOS 终端不走代理的问题，支持所有主流代理工具。
+
+## 🎯 支持的代理工具
+
+✅ **Clash** / **ClashX** / **Clash for Windows**  
+✅ **V2Ray** / **V2RayX** / **V2RayU**  
+✅ **Surge** / **Shadowsocks** / **ShadowsocksX**  
+✅ **Trojan** / **Quantumult X**  
+✅ 任何支持 HTTP/HTTPS/SOCKS5 代理的工具
+
 ## 🚀 5分钟快速配置
 
 ### 核心问题
-虽然Clash for Windows已经开启系统代理，但**macOS终端默认不会自动使用系统代理**。
+虽然代理客户端（如Clash、V2Ray、Surge等）已经开启系统代理，但**macOS终端默认不会自动使用系统代理**。
 
 ### 一键解决方案
 ```bash
@@ -88,7 +98,7 @@ source ~/.zshrc
 
 ### 2. 代理无法连接
 ```bash
-# 检查Clash是否运行
+# 检查代理服务是否运行
 lsof -i :7890
 
 # 重新开启代理
@@ -99,7 +109,7 @@ proxy-test
 
 ## 💡 注意事项
 
-1. **代理端口**：确保Clash for Windows使用7890端口
+1. **代理端口**：默认使用7890端口（支持Clash、V2Ray等主流工具）。如需修改端口，请编辑相应配置文件
 2. **网络切换**：更换网络环境时重新执行 `proxy-on`
 3. **首次使用**：如果命令不生效，执行 `source ~/.zshrc` 重新加载
 

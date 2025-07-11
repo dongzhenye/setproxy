@@ -106,9 +106,9 @@ echo ""
 # 检查代理端口
 echo "🔌 代理端口检查:"
 if lsof -i :7890 > /dev/null 2>&1; then
-    echo "  ✅ 端口7890正在监听 (Clash正在运行)"
+    echo "  ✅ 端口7890正在监听 (代理服务运行中)"
 else
-    echo "  ❌ 端口7890未监听 (请检查Clash是否运行)"
+    echo "  ❌ 端口7890未监听 (请检查代理软件是否运行)"
 fi
 echo ""
 
