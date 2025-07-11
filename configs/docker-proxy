@@ -1,0 +1,82 @@
+#!/bin/bash
+# Docker 代理配置脚本
+
+PROXY_URL="http://127.0.0.1:7890"
+DOCKER_CONFIG_DIR="$HOME/.docker"
+DOCKER_CONFIG_FILE="$DOCKER_CONFIG_DIR/config.json"
+
+if [ "$1" = "on" ]; then
+    echo "🐳 配置Docker代理..."
+    
+    # 创建 .docker 目录
+    mkdir -p "$DOCKER_CONFIG_DIR"
+    
+    # 检查是否已有配置文件
+    if [ -f "$DOCKER_CONFIG_FILE" ]; then
+        # 备份原文件
+        cp "$DOCKER_CONFIG_FILE" "$DOCKER_CONFIG_FILE.backup.$(date +%Y%m%d%H%M%S)"
+        
+        # 使用 Python 来安全地更新 JSON
+        python3 -c "
+import json
+import sys
+
+with open('$DOCKER_CONFIG_FILE', 'r') as f:
+    config = json.load(f)
+
+config['proxies'] = {
+    'default': {
+        'httpProxy': '$PROXY_URL',
+        'httpsProxy': '$PROXY_URL',
+        'noProxy': 'localhost,127.0.0.1'
+    }
+}
+
+with open('$DOCKER_CONFIG_FILE', 'w') as f:
+    json.dump(config, f, indent=2)
+" 2>/dev/null || {
+            echo "⚠️  无法更新Docker配置，请手动配置"
+            exit 1
+        }
+    else
+        # 创建新配置
+        cat > "$DOCKER_CONFIG_FILE" << EOF
+{
+  "proxies": {
+    "default": {
+      "httpProxy": "$PROXY_URL",
+      "httpsProxy": "$PROXY_URL",
+      "noProxy": "localhost,127.0.0.1"
+    }
+  }
+}
+EOF
+    fi
+    
+    echo "✅ Docker代理已开启"
+    echo "配置文件: $DOCKER_CONFIG_FILE"
+    
+elif [ "$1" = "off" ]; then
+    echo "🐳 关闭Docker代理..."
+    
+    if [ -f "$DOCKER_CONFIG_FILE" ]; then
+        # 使用 Python 移除代理配置
+        python3 -c "
+import json
+
+with open('$DOCKER_CONFIG_FILE', 'r') as f:
+    config = json.load(f)
+
+if 'proxies' in config:
+    del config['proxies']
+
+with open('$DOCKER_CONFIG_FILE', 'w') as f:
+    json.dump(config, f, indent=2)
+" 2>/dev/null || echo "⚠️  无法更新Docker配置"
+    fi
+    
+    echo "✅ Docker代理已关闭"
+else
+    echo "用法: $0 [on|off]"
+    exit 1
+fi

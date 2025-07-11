@@ -1,0 +1,53 @@
+#!/bin/bash
+# Rust Cargo 代理配置脚本
+
+PROXY_URL="http://127.0.0.1:7890"
+CARGO_CONFIG_DIR="$HOME/.cargo"
+CARGO_CONFIG_FILE="$CARGO_CONFIG_DIR/config.toml"
+
+if [ "$1" = "on" ]; then
+    echo "🦀 配置Cargo代理..."
+    
+    # 创建 .cargo 目录
+    mkdir -p "$CARGO_CONFIG_DIR"
+    
+    # 备份原配置
+    if [ -f "$CARGO_CONFIG_FILE" ]; then
+        cp "$CARGO_CONFIG_FILE" "$CARGO_CONFIG_FILE.backup.$(date +%Y%m%d%H%M%S)"
+    fi
+    
+    # 检查是否已有代理配置
+    if grep -q "\[http\]" "$CARGO_CONFIG_FILE" 2>/dev/null; then
+        echo "⚠️  Cargo配置文件已有[http]部分，请手动添加代理配置"
+        echo "在 $CARGO_CONFIG_FILE 中添加:"
+        echo "[http]"
+        echo "proxy = \"$PROXY_URL\""
+        echo "[https]"
+        echo "proxy = \"$PROXY_URL\""
+    else
+        # 添加代理配置
+        cat >> "$CARGO_CONFIG_FILE" << EOF
+
+[http]
+proxy = "$PROXY_URL"
+
+[https]
+proxy = "$PROXY_URL"
+EOF
+        echo "✅ Cargo代理已开启"
+        echo "配置文件: $CARGO_CONFIG_FILE"
+    fi
+    
+elif [ "$1" = "off" ]; then
+    echo "🦀 关闭Cargo代理..."
+    
+    if [ -f "$CARGO_CONFIG_FILE" ]; then
+        # 移除代理配置
+        sed -i '' '/\[http\]/,/^$/d' "$CARGO_CONFIG_FILE" 2>/dev/null
+        sed -i '' '/\[https\]/,/^$/d' "$CARGO_CONFIG_FILE" 2>/dev/null
+        echo "✅ Cargo代理已关闭"
+    fi
+else
+    echo "用法: $0 [on|off]"
+    exit 1
+fi

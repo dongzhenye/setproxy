@@ -26,8 +26,11 @@
 git clone https://github.com/dongzhenye/setproxy.git
 cd setproxy
 
-# 2. 执行配置脚本（仅需一次）
-source setup-proxy.sh
+# 2. 执行配置脚本（根据需求选择）
+source setup-proxy.sh --recommended  # 推荐：Git+npm+pip（默认）
+source setup-proxy.sh --minimal      # 最小：仅核心proxy命令
+source setup-proxy.sh --all          # 完整：包含Go/Docker/Cargo
+source setup-proxy.sh --help         # 查看所有选项
 ```
 
 ## 📱 日常使用
@@ -65,6 +68,13 @@ setproxy/
 ├── README.md              # 使用说明
 ├── setup-proxy.sh         # 一键配置脚本
 └── configs/               # 配置文件模板
+    ├── zshrc-proxy        # 核心proxy命令
+    ├── gitconfig-proxy    # Git代理配置
+    ├── npmrc-proxy        # npm代理配置
+    ├── pip-proxy          # pip代理配置
+    ├── go-proxy           # Go代理配置
+    ├── docker-proxy       # Docker代理配置
+    └── cargo-proxy        # Cargo代理配置
 ```
 
 ## 🔧 配置详情
@@ -121,6 +131,23 @@ proxy-test
 1. **代理端口**：默认使用7890端口（支持Clash、V2Ray等主流工具）。如需修改端口，请编辑相应配置文件
 2. **网络切换**：更换网络环境时重新执行 `proxy-on`
 3. **首次使用**：如果命令不生效，执行 `source ~/.zshrc` 重新加载
+
+## 🔧 支持的工具配置
+
+### 核心功能
+- **终端命令**：proxy-on/off/status/test
+
+### 推荐配置（默认安装）
+- **Git**：版本控制
+- **npm**：Node.js 包管理
+- **pip**：Python 包管理
+
+### 扩展配置（可选）
+- **Go**：Go 语言开发（含 GOPROXY 镜像）
+- **Docker**：容器开发
+- **Cargo**：Rust 开发
+
+使用 `source setup-proxy.sh --help` 查看所有安装选项。
 
 ## 🗑️ 卸载
 

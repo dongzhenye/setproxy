@@ -1,0 +1,32 @@
+#!/bin/bash
+# Go 代理配置脚本
+
+PROXY_URL="http://127.0.0.1:7890"
+
+if [ "$1" = "on" ]; then
+    echo "🐹 配置Go代理..."
+    
+    # 设置 GOPROXY 为国内镜像
+    go env -w GOPROXY=https://goproxy.cn,direct
+    
+    # 设置 HTTP/HTTPS 代理
+    go env -w HTTP_PROXY="$PROXY_URL"
+    go env -w HTTPS_PROXY="$PROXY_URL"
+    
+    echo "✅ Go代理已开启"
+    echo "GOPROXY: $(go env GOPROXY)"
+    echo "HTTP_PROXY: $(go env HTTP_PROXY)"
+    
+elif [ "$1" = "off" ]; then
+    echo "🐹 关闭Go代理..."
+    
+    # 恢复默认设置
+    go env -u HTTP_PROXY
+    go env -u HTTPS_PROXY
+    go env -u GOPROXY
+    
+    echo "✅ Go代理已关闭"
+else
+    echo "用法: $0 [on|off]"
+    exit 1
+fi
