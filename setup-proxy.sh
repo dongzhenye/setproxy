@@ -112,21 +112,53 @@ else
 fi
 echo ""
 
+# 检查公网IP地址
+echo "📍 公网IP检测:"
+if command -v curl > /dev/null; then
+    # 尝试获取IP信息
+    ip_info=$(curl -s --connect-timeout 5 --max-time 10 https://ipinfo.io 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$ip_info" ]; then
+        ip=$(echo "$ip_info" | grep -o '"ip": *"[^"]*"' | cut -d'"' -f4)
+        country=$(echo "$ip_info" | grep -o '"country": *"[^"]*"' | cut -d'"' -f4)
+        city=$(echo "$ip_info" | grep -o '"city": *"[^"]*"' | cut -d'"' -f4)
+        echo "  IP地址: $ip"
+        echo "  位置: $city, $country"
+    else
+        # 备用方案
+        ip=$(curl -s --connect-timeout 5 --max-time 10 https://ifconfig.me 2>/dev/null)
+        if [ $? -eq 0 ] && [ -n "$ip" ]; then
+            echo "  IP地址: $ip"
+        else
+            echo "  ⚠️  无法获取IP地址"
+        fi
+    fi
+else
+    echo "  ⚠️  curl命令不可用，跳过IP检测"
+fi
+echo ""
+
 # 检查网络连接
 echo "🌐 网络连接测试:"
 if command -v curl > /dev/null; then
-    echo "  测试Google连接..."
-    if curl -I --connect-timeout 10 --max-time 15 https://google.com > /dev/null 2>&1; then
-        echo "  ✅ Google连接成功"
+    echo -n "  Google: "
+    if curl -s -I --connect-timeout 5 --max-time 10 https://google.com > /dev/null 2>&1; then
+        echo "✅ 连接成功"
     else
-        echo "  ❌ Google连接失败"
+        echo "❌ 连接失败"
     fi
     
-    echo "  测试GitHub连接..."
-    if curl -I --connect-timeout 10 --max-time 15 https://github.com > /dev/null 2>&1; then
-        echo "  ✅ GitHub连接成功"
+    echo -n "  GitHub: "
+    if curl -s -I --connect-timeout 5 --max-time 10 https://github.com > /dev/null 2>&1; then
+        echo "✅ 连接成功"
     else
-        echo "  ❌ GitHub连接失败"
+        echo "❌ 连接失败"
+    fi
+    
+    echo -n "  YouTube: "
+    if curl -s -I --connect-timeout 5 --max-time 10 https://youtube.com > /dev/null 2>&1; then
+        echo "✅ 连接成功 (代理工作正常)"
+    else
+        echo "❌ 连接失败"
     fi
 else
     echo "  ⚠️  curl命令不可用，跳过网络测试"

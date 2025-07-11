@@ -15,13 +15,119 @@ alias proxy-status='echo "HTTP_PROXY: ${HTTP_PROXY:-未设置}" && echo "HTTPS_P
 
 # 检查代理连接的函数
 proxy-test() {
-    if command -v curl > /dev/null; then
-        echo "测试Google连接..."
-        curl -I --connect-timeout 5 https://google.com
-    else
-        echo "curl命令不可用"
+    echo "🔍 开始代理测试..."
+    echo ""
+    
+    # 检查curl是否可用
+    if ! command -v curl > /dev/null; then
+        echo "❌ curl命令不可用，无法进行测试"
+        return 1
     fi
+    
+    # 1. 检查IP地址和位置
+    echo "📍 IP地址检测:"
+    echo "-------------------"
+    
+    # 尝试多个IP检测服务，确保可靠性
+    local ip_info=""
+    local service_used=""
+    
+    # 首选 ipinfo.io (返回JSON格式，包含国家信息)
+    ip_info=$(curl -s --connect-timeout 5 --max-time 10 https://ipinfo.io 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$ip_info" ]; then
+        service_used="ipinfo.io"
+        local ip=$(echo "$ip_info" | grep -o '"ip": *"[^"]*"' | cut -d'"' -f4)
+        local city=$(echo "$ip_info" | grep -o '"city": *"[^"]*"' | cut -d'"' -f4)
+        local region=$(echo "$ip_info" | grep -o '"region": *"[^"]*"' | cut -d'"' -f4)
+        local country=$(echo "$ip_info" | grep -o '"country": *"[^"]*"' | cut -d'"' -f4)
+        local org=$(echo "$ip_info" | grep -o '"org": *"[^"]*"' | cut -d'"' -f4)
+        
+        echo "  IP地址: $ip"
+        echo "  位置: $city, $region, $country"
+        echo "  运营商: $org"
+    else
+        # 备选方案1: ifconfig.me (简单但可靠)
+        local ip=$(curl -s --connect-timeout 5 --max-time 10 https://ifconfig.me 2>/dev/null)
+        if [ $? -eq 0 ] && [ -n "$ip" ]; then
+            service_used="ifconfig.me"
+            echo "  IP地址: $ip"
+            # 尝试获取国家信息
+            local country=$(curl -s --connect-timeout 5 --max-time 10 https://ifconfig.me/country 2>/dev/null)
+            if [ -n "$country" ]; then
+                echo "  国家: $country"
+            fi
+        else
+            # 备选方案2: icanhazip.com
+            local ip=$(curl -s --connect-timeout 5 --max-time 10 https://icanhazip.com 2>/dev/null)
+            if [ $? -eq 0 ] && [ -n "$ip" ]; then
+                service_used="icanhazip.com"
+                echo "  IP地址: $ip"
+            else
+                echo "  ❌ 无法获取IP地址信息"
+            fi
+        fi
+    fi
+    
+    if [ -n "$service_used" ]; then
+        echo "  数据来源: $service_used"
+    fi
+    
+    echo ""
+    
+    # 2. 测试代理连接
+    echo "🌐 连接测试:"
+    echo "-------------------"
+    
+    # 测试Google
+    echo -n "  Google: "
+    if curl -s -I --connect-timeout 5 --max-time 10 https://google.com > /dev/null 2>&1; then
+        echo "✅ 连接成功"
+    else
+        echo "❌ 连接失败"
+    fi
+    
+    # 测试GitHub
+    echo -n "  GitHub: "
+    if curl -s -I --connect-timeout 5 --max-time 10 https://github.com > /dev/null 2>&1; then
+        echo "✅ 连接成功"
+    else
+        echo "❌ 连接失败"
+    fi
+    
+    # 测试YouTube (通常需要代理)
+    echo -n "  YouTube: "
+    if curl -s -I --connect-timeout 5 --max-time 10 https://youtube.com > /dev/null 2>&1; then
+        echo "✅ 连接成功"
+    else
+        echo "❌ 连接失败"
+    fi
+    
+    echo ""
+    
+    # 3. 代理状态总结
+    echo "📊 代理状态:"
+    echo "-------------------"
+    if [ -n "$HTTP_PROXY" ]; then
+        echo "  ✅ 代理已启用: $HTTP_PROXY"
+        # 检查代理端口是否在监听
+        local proxy_port=$(echo "$HTTP_PROXY" | grep -o ':[0-9]*' | tr -d ':')
+        if lsof -i :${proxy_port:-7890} > /dev/null 2>&1; then
+            echo "  ✅ 代理服务运行正常"
+        else
+            echo "  ⚠️  代理端口未监听，请检查代理软件"
+        fi
+    else
+        echo "  ⚠️  代理未启用 (使用 proxy-on 开启)"
+    fi
+    
+    echo ""
 }
+
+# 兼容下划线写法（方便用户使用）
+alias proxy_on=proxy-on
+alias proxy_off=proxy-off
+alias proxy_status=proxy-status
+alias proxy_test=proxy-test
 
 # 智能代理：检查Clash是否运行，如果运行则自动开启代理
 # 取消注释下面的行来启用自动代理

@@ -14,17 +14,17 @@ source setup-proxy.sh
 ## 📱 日常使用
 
 ```bash
-# 开启代理
-proxy-on
+# 开启代理（支持两种写法）
+proxy-on    # 或 proxy_on
 
 # 关闭代理
-proxy-off
+proxy-off   # 或 proxy_off
 
 # 检查代理状态
-proxy-status
+proxy-status  # 或 proxy_status
 
-# 测试代理连接
-proxy-test
+# 测试代理连接（显示IP地址和位置）
+proxy-test    # 或 proxy_test
 ```
 
 ### 验证配置
