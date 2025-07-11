@@ -1,17 +1,50 @@
 # macOS 终端代理配置
 # 将此内容添加到 ~/.zshrc 文件中
 
-# 代理服务器配置
-PROXY_HOST="127.0.0.1"
-PROXY_PORT="7890"
-PROXY_URL="http://${PROXY_HOST}:${PROXY_PORT}"
+# 获取脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+
+# 加载通用函数
+if [ -f "$SCRIPT_DIR/common.sh" ]; then
+    source "$SCRIPT_DIR/common.sh"
+elif [ -f "$HOME/.setproxy/common.sh" ]; then
+    source "$HOME/.setproxy/common.sh"
+else
+    # 后备方案：如果找不到 common.sh，使用内联函数
+    get_proxy_url() {
+        local port="7890"
+        [ -n "$SETPROXY_PORT" ] && port="$SETPROXY_PORT"
+        echo "http://127.0.0.1:$port"
+    }
+fi
+
+# 获取代理URL
+PROXY_URL="$(get_proxy_url)"
 
 # 代理快捷命令
-alias proxy-on='export HTTP_PROXY="${PROXY_URL}" && export HTTPS_PROXY="${PROXY_URL}" && export ALL_PROXY="${PROXY_URL}" && export http_proxy="${PROXY_URL}" && export https_proxy="${PROXY_URL}" && export all_proxy="${PROXY_URL}" && export NO_PROXY="localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,100.64.0.0/10,17.0.0.0/8,169.254.0.0/16,224.0.0.0/4,240.0.0.0/4" && export no_proxy="${NO_PROXY}" && echo "✅ 代理已开启"'
+proxy-on() {
+    local proxy_url="$(get_proxy_url)"
+    export HTTP_PROXY="$proxy_url"
+    export HTTPS_PROXY="$proxy_url"
+    export ALL_PROXY="$proxy_url"
+    export http_proxy="$proxy_url"
+    export https_proxy="$proxy_url"
+    export all_proxy="$proxy_url"
+    export NO_PROXY="localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,100.64.0.0/10,17.0.0.0/8,169.254.0.0/16,224.0.0.0/4,240.0.0.0/4"
+    export no_proxy="${NO_PROXY}"
+    echo "✅ 代理已开启 - $proxy_url"
+}
 
-alias proxy-off='unset HTTP_PROXY && unset HTTPS_PROXY && unset ALL_PROXY && unset http_proxy && unset https_proxy && unset all_proxy && unset NO_PROXY && unset no_proxy && echo "🔴 代理已关闭"'
+proxy-off() {
+    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy NO_PROXY no_proxy
+    echo "🔴 代理已关闭"
+}
 
-alias proxy-status='echo "HTTP_PROXY: ${HTTP_PROXY:-未设置}" && echo "HTTPS_PROXY: ${HTTPS_PROXY:-未设置}" && echo "ALL_PROXY: ${ALL_PROXY:-未设置}"'
+proxy-status() {
+    echo "HTTP_PROXY: ${HTTP_PROXY:-未设置}"
+    echo "HTTPS_PROXY: ${HTTPS_PROXY:-未设置}"
+    echo "ALL_PROXY: ${ALL_PROXY:-未设置}"
+}
 
 # 检查代理连接的函数
 proxy-test() {
@@ -111,10 +144,14 @@ proxy-test() {
         echo "  ✅ 代理已启用: $HTTP_PROXY"
         # 检查代理端口是否在监听
         local proxy_port=$(echo "$HTTP_PROXY" | grep -o ':[0-9]*' | tr -d ':')
-        if lsof -i :${proxy_port:-7890} > /dev/null 2>&1; then
-            echo "  ✅ 代理服务运行正常"
+        if [ -z "$proxy_port" ]; then
+            # 如果无法从 HTTP_PROXY 提取端口，使用配置的端口
+            proxy_port=$(get_proxy_url | grep -o ':[0-9]*' | tr -d ':')
+        fi
+        if lsof -i :${proxy_port} > /dev/null 2>&1; then
+            echo "  ✅ 代理服务运行正常 (端口 $proxy_port)"
         else
-            echo "  ⚠️  代理端口未监听，请检查代理软件"
+            echo "  ⚠️  代理端口 $proxy_port 未监听，请检查代理软件"
         fi
     else
         echo "  ⚠️  代理未启用 (使用 proxy-on 开启)"
@@ -131,6 +168,7 @@ alias proxy_test=proxy-test
 
 # 智能代理：检查代理服务是否运行，如果运行则自动开启代理
 # 取消注释下面的行来启用自动代理
-# if lsof -i :7890 > /dev/null 2>&1; then
+# proxy_port=$(get_proxy_url | grep -o ':[0-9]*' | tr -d ':')
+# if lsof -i :${proxy_port} > /dev/null 2>&1; then
 #     proxy-on > /dev/null 2>&1
 # fi 

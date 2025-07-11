@@ -1,13 +1,18 @@
+#!/bin/bash
 # npm 代理配置
 # 使用方法: 
 # 1. 开启代理: bash configs/npmrc-proxy on
 # 2. 关闭代理: bash configs/npmrc-proxy off
 
+# 加载通用函数
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+PROXY_URL="$(get_proxy_url)"
+
 # 检查参数
 if [ "$1" == "on" ]; then
     echo "📦 配置npm代理..."
-    npm config set proxy http://127.0.0.1:7890
-    npm config set https-proxy http://127.0.0.1:7890
+    npm config set proxy $PROXY_URL
+    npm config set https-proxy $PROXY_URL
     npm config set registry https://registry.npmjs.org/
     echo "✅ npm代理已开启"
     echo "HTTP代理: $(npm config get proxy)"

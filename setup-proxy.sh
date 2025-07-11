@@ -1,6 +1,7 @@
 #!/bin/bash
 # 一键配置终端代理
 # 使用方法: source setup-proxy.sh [options]
+# 环境变量: PROXY_PORT=8080 source setup-proxy.sh
 
 # 颜色定义
 RED='\033[0;31m'
@@ -8,6 +9,27 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# 项目目录
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 加载或创建配置文件
+CONFIG_FILE="$PROJECT_DIR/configs/proxy.conf"
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+else
+    # 创建默认配置
+    echo "# setproxy 配置文件" > "$CONFIG_FILE"
+    echo "# 默认代理端口（如需修改请编辑此文件）" >> "$CONFIG_FILE"
+    echo "PROXY_PORT=7890" >> "$CONFIG_FILE"
+    PROXY_PORT=7890
+fi
+
+# 允许环境变量覆盖配置文件
+if [ -n "$SETPROXY_PORT" ]; then
+    PROXY_PORT="$SETPROXY_PORT"
+    echo "使用自定义端口: $PROXY_PORT"
+fi
 
 # 显示帮助信息
 show_help() {
@@ -110,10 +132,8 @@ done
 echo "🚀 开始配置macOS终端代理..."
 echo ""
 
-# 项目目录
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 echo "📁 项目目录: $PROJECT_DIR"
+echo "🔧 代理端口: $PROXY_PORT"
 echo ""
 
 # 显示安装计划
@@ -142,8 +162,34 @@ if [[ "$ANY_INSTALL" == "true" ]]; then
 fi
 echo ""
 
-# 1. 配置 zsh（核心功能）
-echo "1️⃣ 配置核心功能..."
+# 1. 创建配置目录和文件
+echo "1️⃣ 设置配置文件..."
+SETPROXY_CONFIG_DIR="$HOME/.setproxy"
+mkdir -p "$SETPROXY_CONFIG_DIR"
+
+# 复制配置文件到用户目录
+if [ ! -f "$SETPROXY_CONFIG_DIR/proxy.conf" ]; then
+    cp "$CONFIG_FILE" "$SETPROXY_CONFIG_DIR/proxy.conf"
+    echo "✅ 配置文件已创建: $SETPROXY_CONFIG_DIR/proxy.conf"
+else
+    # 更新端口设置
+    if grep -q "PROXY_PORT=" "$SETPROXY_CONFIG_DIR/proxy.conf"; then
+        sed -i '' "s/PROXY_PORT=.*/PROXY_PORT=$PROXY_PORT/" "$SETPROXY_CONFIG_DIR/proxy.conf"
+    else
+        echo "PROXY_PORT=$PROXY_PORT" >> "$SETPROXY_CONFIG_DIR/proxy.conf"
+    fi
+    echo "✅ 配置文件已更新"
+fi
+
+# 复制通用函数库到用户目录
+if [ -f "$PROJECT_DIR/configs/common.sh" ]; then
+    cp "$PROJECT_DIR/configs/common.sh" "$SETPROXY_CONFIG_DIR/common.sh"
+    echo "✅ 通用函数库已复制: $SETPROXY_CONFIG_DIR/common.sh"
+fi
+echo ""
+
+# 2. 配置 zsh（核心功能）
+echo "2️⃣ 配置核心功能..."
 ZSHRC_FILE="$HOME/.zshrc"
 PROXY_MARKER="# === macOS 终端代理配置 ==="
 
@@ -161,9 +207,9 @@ else
 fi
 echo ""
 
-# 2. 配置 Git 代理（可选）
+# 3. 配置 Git 代理（可选）
 if [[ "$INSTALL_GIT" == "true" ]]; then
-    echo "2️⃣ 配置 Git 代理..."
+    echo "3️⃣ 配置 Git 代理..."
     if command -v git > /dev/null; then
         bash "$PROJECT_DIR/configs/gitconfig-proxy" on
     else
@@ -174,7 +220,7 @@ fi
 
 # 3. 配置 npm 代理（可选）
 if [[ "$INSTALL_NPM" == "true" ]]; then
-    echo "3️⃣ 配置 npm 代理..."
+    echo "4️⃣ 配置 npm 代理..."
     if command -v npm > /dev/null; then
         current_proxy=$(npm config get proxy 2>/dev/null)
         if [ "$current_proxy" = "http://127.0.0.1:7890" ]; then
@@ -190,7 +236,7 @@ fi
 
 # 4. 配置 pip 代理（可选）
 if [[ "$INSTALL_PIP" == "true" ]]; then
-    echo "4️⃣ 配置 pip 代理..."
+    echo "5️⃣ 配置 pip 代理..."
     if command -v pip > /dev/null || command -v pip3 > /dev/null; then
         bash "$PROJECT_DIR/configs/pip-proxy" on
     else
@@ -201,7 +247,7 @@ fi
 
 # 5. 配置 Go 代理（可选）
 if [[ "$INSTALL_GO" == "true" ]]; then
-    echo "5️⃣ 配置 Go 代理..."
+    echo "6️⃣ 配置 Go 代理..."
     if command -v go > /dev/null; then
         bash "$PROJECT_DIR/configs/go-proxy" on
     else
@@ -212,7 +258,7 @@ fi
 
 # 6. 配置 Docker 代理（可选）
 if [[ "$INSTALL_DOCKER" == "true" ]]; then
-    echo "6️⃣ 配置 Docker 代理..."
+    echo "7️⃣ 配置 Docker 代理..."
     if command -v docker > /dev/null; then
         bash "$PROJECT_DIR/configs/docker-proxy" on
     else
@@ -223,7 +269,7 @@ fi
 
 # 7. 配置 Cargo 代理（可选）
 if [[ "$INSTALL_CARGO" == "true" ]]; then
-    echo "7️⃣ 配置 Cargo 代理..."
+    echo "8️⃣ 配置 Cargo 代理..."
     if command -v cargo > /dev/null; then
         bash "$PROJECT_DIR/configs/cargo-proxy" on
     else
@@ -233,13 +279,13 @@ if [[ "$INSTALL_CARGO" == "true" ]]; then
 fi
 
 # 8. 设置脚本可执行权限
-echo "8️⃣ 设置脚本权限..."
+echo "9️⃣ 设置脚本权限..."
 chmod +x "$PROJECT_DIR/configs/"*
 echo "✅ 脚本权限已设置"
 echo ""
 
 # 9. 加载配置并运行检查
-echo "9️⃣ 加载配置并测试..."
+echo "🔟 加载配置并测试..."
 echo ""
 
 # 加载 zshrc 配置

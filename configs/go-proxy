@@ -1,7 +1,9 @@
 #!/bin/bash
 # Go 代理配置脚本
 
-PROXY_URL="http://127.0.0.1:7890"
+# 加载通用函数
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+PROXY_URL="$(get_proxy_url)"
 
 if [ "$1" = "on" ]; then
     echo "🐹 配置Go代理..."

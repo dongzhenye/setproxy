@@ -4,6 +4,10 @@
 # 1. 开启代理: bash configs/pip-proxy on
 # 2. 关闭代理: bash configs/pip-proxy off
 
+# 加载通用函数
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+PROXY_URL="$(get_proxy_url)"
+
 # pip 配置文件路径
 PIP_CONFIG_DIR="$HOME/.pip"
 PIP_CONFIG_FILE="$PIP_CONFIG_DIR/pip.conf"
@@ -18,7 +22,7 @@ if [ "$1" == "on" ]; then
     # 写入配置文件
     cat > "$PIP_CONFIG_FILE" << EOF
 [global]
-proxy = http://127.0.0.1:7890
+proxy = $PROXY_URL
 trusted-host = pypi.org
                files.pythonhosted.org
                pypi.python.org
@@ -26,7 +30,7 @@ EOF
     
     echo "✅ pip代理已开启"
     echo "配置文件位置: $PIP_CONFIG_FILE"
-    echo "代理地址: http://127.0.0.1:7890"
+    echo "代理地址: $PROXY_URL"
     
 elif [ "$1" == "off" ]; then
     echo "🐍 移除pip代理..."
@@ -56,4 +60,4 @@ fi
 # 临时使用代理安装包的命令示例
 echo ""
 echo "💡 临时使用代理安装包:"
-echo "  pip install --proxy http://127.0.0.1:7890 package_name" 
+echo "  pip install --proxy $PROXY_URL package_name" 

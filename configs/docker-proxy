@@ -1,7 +1,9 @@
 #!/bin/bash
 # Docker 代理配置脚本
 
-PROXY_URL="http://127.0.0.1:7890"
+# 加载通用函数
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+PROXY_URL="$(get_proxy_url)"
 DOCKER_CONFIG_DIR="$HOME/.docker"
 DOCKER_CONFIG_FILE="$DOCKER_CONFIG_DIR/config.json"
 
