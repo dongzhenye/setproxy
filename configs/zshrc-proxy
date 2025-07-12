@@ -113,15 +113,24 @@ proxy-test() {
     
     # 测试Google
     echo -n "  Google: "
-    if curl -s -I --connect-timeout 5 --max-time 10 https://google.com > /dev/null 2>&1; then
+    local google_result=$(curl -s -I --connect-timeout 5 --max-time 10 -w "\n%{http_code}" https://google.com 2>&1)
+    local http_code=$(echo "$google_result" | tail -n1)
+    if [[ "$http_code" =~ ^[23][0-9][0-9]$ ]]; then
         echo "✅ 连接成功"
     else
         echo "❌ 连接失败"
+        if [ -n "$HTTP_PROXY" ] && ! lsof -i :$(echo "$HTTP_PROXY" | grep -o '[0-9]*$') > /dev/null 2>&1; then
+            echo "     └─ 提示: 代理端口未监听，请检查代理软件"
+        elif [[ "$google_result" =~ "SSL_ERROR" ]] || [[ "$google_result" =~ "SSL_connect" ]]; then
+            echo "     └─ 提示: SSL连接错误，可能是代理配置问题"
+        fi
     fi
     
     # 测试GitHub
     echo -n "  GitHub: "
-    if curl -s -I --connect-timeout 5 --max-time 10 https://github.com > /dev/null 2>&1; then
+    local github_result=$(curl -s -I --connect-timeout 5 --max-time 10 -w "\n%{http_code}" https://github.com 2>&1)
+    local http_code=$(echo "$github_result" | tail -n1)
+    if [[ "$http_code" =~ ^[23][0-9][0-9]$ ]]; then
         echo "✅ 连接成功"
     else
         echo "❌ 连接失败"
@@ -129,10 +138,15 @@ proxy-test() {
     
     # 测试YouTube (通常需要代理)
     echo -n "  YouTube: "
-    if curl -s -I --connect-timeout 5 --max-time 10 https://youtube.com > /dev/null 2>&1; then
+    local youtube_result=$(curl -s -I --connect-timeout 5 --max-time 10 -w "\n%{http_code}" https://youtube.com 2>&1)
+    local http_code=$(echo "$youtube_result" | tail -n1)
+    if [[ "$http_code" =~ ^[23][0-9][0-9]$ ]]; then
         echo "✅ 连接成功"
     else
         echo "❌ 连接失败"
+        if [ -z "$HTTP_PROXY" ]; then
+            echo "     └─ 提示: YouTube通常需要代理才能访问"
+        fi
     fi
     
     echo ""
