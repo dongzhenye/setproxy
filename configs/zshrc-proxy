@@ -2,7 +2,7 @@
 # 将此内容添加到 ~/.zshrc 文件中
 
 # 获取脚本所在目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+SCRIPT_DIR="$HOME/.setproxy"
 
 # 加载通用函数
 if [ -f "$SCRIPT_DIR/common.sh" ]; then
