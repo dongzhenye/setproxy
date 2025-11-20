@@ -1,34 +1,53 @@
 #!/bin/bash
-# Go 代理配置脚本
+# Go 代理配置（on/off）
+set -euo pipefail
 
-# 加载通用函数
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 PROXY_URL="$(get_proxy_url)"
 
-if [ "$1" = "on" ]; then
-    echo "🐹 配置Go代理..."
-    
-    # 设置 GOPROXY 为国内镜像
+usage() {
+  cat <<'EOF'
+用法: go-proxy <on|off>
+说明: 按 setproxy 的地址写入/清理 go env 中的代理配置。
+EOF
+}
+
+log() { echo "[go] $*"; }
+
+require_go() {
+  command -v go >/dev/null 2>&1 || {
+    log "未找到 go 命令，请先安装 Go"
+    exit 1
+  }
+}
+
+show_config() {
+  log "GOPROXY: $(go env GOPROXY 2>/dev/null || echo unset)"
+  log "HTTP_PROXY: $(go env HTTP_PROXY 2>/dev/null || echo unset)"
+  log "HTTPS_PROXY: $(go env HTTPS_PROXY 2>/dev/null || echo unset)"
+}
+
+cmd="${1:-}"
+
+case "$cmd" in
+  on)
+    require_go
+    log "设置 Go 代理 -> $PROXY_URL (GOPROXY=https://goproxy.cn,direct)"
     go env -w GOPROXY=https://goproxy.cn,direct
-    
-    # 设置 HTTP/HTTPS 代理
     go env -w HTTP_PROXY="$PROXY_URL"
     go env -w HTTPS_PROXY="$PROXY_URL"
-    
-    echo "✅ Go代理已开启"
-    echo "GOPROXY: $(go env GOPROXY)"
-    echo "HTTP_PROXY: $(go env HTTP_PROXY)"
-    
-elif [ "$1" = "off" ]; then
-    echo "🐹 关闭Go代理..."
-    
-    # 恢复默认设置
+    show_config
+    ;;
+  off)
+    require_go
+    log "清理 Go 代理配置"
     go env -u HTTP_PROXY
     go env -u HTTPS_PROXY
     go env -u GOPROXY
-    
-    echo "✅ Go代理已关闭"
-else
-    echo "用法: $0 [on|off]"
+    show_config
+    ;;
+  *)
+    usage
     exit 1
-fi
+    ;;
+esac
