@@ -71,6 +71,9 @@ case "$cmd" in
     npm config set proxy "$PROXY_URL" --location=user
     npm config set https-proxy "$PROXY_URL" --location=user
     npm config set registry https://registry.npmjs.org/ --location=user
+    # 同步更新当前会话的 npm_config_*，避免本次 shell 下仍用旧值
+    export npm_config_proxy="$PROXY_URL"
+    export npm_config_https_proxy="$PROXY_URL"
     show_config
     ;;
   off)
