@@ -14,39 +14,50 @@
 ✅ **Trojan** / **Quantumult X**  
 ✅ 任何支持 HTTP/HTTPS/SOCKS5 代理的工具
 
-## 🚀 5分钟快速配置
+## 🚀 快速开始（默认直连更安全）
 
-### 核心问题
-虽然代理客户端（如Clash、V2Ray、Surge等）已经开启系统代理，但**macOS终端默认不会自动使用系统代理**。
-
-### 一键解决方案
+- 核心问题：终端不会自动用系统代理；TUN 模式或直连时不应强制导出代理。
+- 默认行为：**off**（直连），只写入命令别名，不导出代理、不改工具。
 
 ```bash
 # 1. 克隆项目
 git clone https://github.com/dongzhenye/setproxy.git
 cd setproxy
 
-# 2. 执行配置脚本（根据需求选择）
-source setup-proxy.sh --recommended  # 推荐：Git+npm+pip（默认）
-source setup-proxy.sh --minimal      # 最小：仅核心proxy命令
-source setup-proxy.sh --all          # 完整：包含Go/Docker/Cargo
-source setup-proxy.sh --help         # 查看所有选项
+# 2. 按场景执行（setproxy.sh/on/off 持久化）
+# 直连或 TUN（系统代理关闭时推荐）
+./setproxy.sh off
+
+# 系统代理场景，按需为工具同步
+./setproxy.sh on --with git,npm,pip      # 示例：我自己的常用组合
+# 或全工具
+./setproxy.sh on --all
+
+# 如是非交互环境、安全起见请显式确认
+# ./setproxy.sh on --with git,npm --force
+
+# 查看状态/测试（不改配置）
+./setproxy.sh status
+./setproxy.sh test
+
+# 首次执行后，如需当前 shell 立即可用别名，请：
+source ~/.zshrc
 ```
 
-## 📱 日常使用
+## 📱 日常使用（持久化开关）
 
 ```bash
-# 开启代理（支持两种写法）
-proxy-on    # 或 proxy_on
+# 开启代理（持久化 + 同步当前会话）
+proxy-on --with git,npm,pip   # 等同于 setproxy on --with ...
 
-# 关闭代理
-proxy-off   # 或 proxy_off
+# 关闭代理（持久化 + 清理当前会话）
+proxy-off --all               # 仅在需要同步关闭工具时加 --with/--all
 
-# 检查代理状态
-proxy-status  # 或 proxy_status
+# 检查代理状态（持久化优先，额外展示当前 env）
+proxy-status
 
-# 测试代理连接（显示IP地址和位置）
-proxy-test    # 或 proxy_test
+# 测试代理连接（按当前状态测试，不假定开启）
+proxy-test
 ```
 
 ### 验证配置
@@ -66,9 +77,10 @@ echo $HTTP_PROXY
 ```
 setproxy/
 ├── README.md              # 使用说明
-├── setup-proxy.sh         # 一键配置脚本
-└── configs/               # 配置文件模板
-    ├── zshrc-proxy        # 核心proxy命令
+├── setproxy.sh            # 核心命令入口（on/off/status/test）
+├── setup-proxy.sh         # 兼容入口，转发到 setproxy.sh
+└── configs/               # 配置文件模板（安装后复制到 ~/.setproxy）
+    ├── zshrc-proxy        # 核心命令别名，调用 setproxy.sh
     ├── gitconfig-proxy    # Git代理配置
     ├── npmrc-proxy        # npm代理配置
     ├── pip-proxy          # pip代理配置
@@ -79,56 +91,31 @@ setproxy/
 
 ## 🔧 配置详情
 
-- **代理服务器**：127.0.0.1:7890（默认端口）
-- **支持工具**：终端环境变量、git、npm、pip
-- **兼容系统**：macOS (zsh终端)
+- **默认端口**：127.0.0.1:7890，可用 `--port` 或环境变量 `SETPROXY_PORT` 覆盖。  
+- **支持工具**（可选同步）：git / npm / pip / go / docker / cargo（通过 `--with` 或 `--all`）。  
+- **兼容系统**：macOS (zsh终端)。
 
 ### 自定义代理端口
 
-如果你的代理工具使用非默认端口（7890），可以通过以下方式自定义：
-
 ```bash
-# 方法1：使用环境变量（临时）
-SETPROXY_PORT=8080 source setup-proxy.sh
-
-# 方法2：创建配置文件（永久）
-mkdir -p ~/.setproxy
-echo "PROXY_PORT=8080" > ~/.setproxy/proxy.conf
-source setup-proxy.sh
+# 临时覆盖
+SETPROXY_PORT=8080 ./setproxy.sh on --with git
+# 或直接指定
+./setproxy.sh on --port 8080 --with git,npm
 ```
 
-端口优先级：环境变量 > 配置文件 > 默认值(7890)
+## 🎯 场景速览
 
-## 🎯 使用场景
-
-### 日常开发
-```bash
-# 开始工作
-proxy-on
-
-# 进行开发工作
-npm install
-git push origin main
-pip install requests
-
-# 结束工作（可选）
-proxy-off
-```
-
-### 网络环境切换
-```bash
-# 切换到新网络环境后
-proxy-off
-proxy-on
-proxy-test
-```
+- **系统代理已开**：`setproxy on --with git,npm,pip`（按需列工具）；若全部同步用 `--all`。  
+- **TUN/直连**：`setproxy off`（默认）；不改工具，避免强制走本地端口。  
+- **仅工具清理**：`setproxy off --with git,npm,pip`（核心 off，工具同步关）。
 
 ## 🔧 故障排除
 
 ### 1. 命令不生效
 ```bash
-# 重新加载配置
-source ~/.zshrc
+source ~/.zshrc        # 重新加载别名与标记区
+./setproxy.sh status   # 看持久化状态与当前 env 是否一致
 ```
 
 ### 2. 代理无法连接
@@ -136,31 +123,31 @@ source ~/.zshrc
 # 检查代理服务是否运行（替换为你的端口）
 lsof -i :7890
 
-# 如果使用自定义端口，检查环境变量
+# 如果使用自定义端口，检查环境变量/参数
 echo $SETPROXY_PORT
 
-# 重新开启代理
+# 重新开关
 proxy-off
-proxy-on
+proxy-on --with git
 proxy-test
 ```
 
 ## ❓ 常见问题 (FAQ)
 
 ### Q: 为什么终端不走系统代理？
-A: macOS 的终端应用不会自动使用系统代理设置。终端需要通过环境变量（HTTP_PROXY等）来配置代理，这正是 setproxy 解决的问题。
+A: macOS 终端不会自动读取系统代理，需要通过环境变量导出。setproxy 负责持久化导出/清除，并可按需同步工具配置。
+
+### Q: 如何选择命令？
+A: 系统代理开 → `setproxy on --with ...`；TUN/直连 → `setproxy off`；若仅关工具 → `setproxy off --with ...`。
 
 ### Q: 支持哪些代理端口？
-A: 默认端口是 7890（Clash、V2Ray 等常用）。你可以通过环境变量 `SETPROXY_PORT` 或配置文件自定义任何端口。
+A: 默认 7890，可用 `--port` 或 `SETPROXY_PORT` 覆盖。
 
 ### Q: proxy-on 和 proxy_on 有什么区别？
-A: 没有区别。为了方便使用，两种写法都被支持。推荐使用连字符格式 `proxy-on`。
+A: 行为一致，`proxy-on`/`proxy-off` 推荐；下划线仅为兼容别名。
 
 ### Q: 如何确认代理是否生效？
-A: 使用 `proxy-test` 命令。它会显示：
-- 当前公网 IP 地址和位置
-- 连接测试结果（Google、GitHub、YouTube）
-- 代理服务状态
+A: `proxy-status` 查看持久化 + env；`proxy-test` 测试出口 IP 与常见站点连通性。
 
 ### Q: 可以同时使用多个代理工具吗？
 A: 可以，但同一时间只能有一个工具监听代理端口。确保只运行一个代理工具，或配置它们使用不同端口。
@@ -182,39 +169,38 @@ A: 编辑 `~/.zshrc`，找到 setproxy 配置部分，取消注释最后的自�
 
 ## 🔧 支持的工具配置
 
-### 核心功能
-- **终端命令**：proxy-on/off/status/test
-
-### 推荐配置（默认安装）
-- **Git**：版本控制
-- **npm**：Node.js 包管理
-- **pip**：Python 包管理
-
-### 扩展配置（可选）
-- **Go**：Go 语言开发（含 GOPROXY 镜像）
-- **Docker**：容器开发
-- **Cargo**：Rust 开发
-
-使用 `source setup-proxy.sh --help` 查看所有安装选项。
+- 核心命令：proxy-on/off/status/test（持久化开关，等同于 `setproxy.sh`）。
+- 工具同步：通过 `--with` 列出需要同步的工具，或 `--all` 一键全选（git/npm/pip/go/docker/cargo）。无参数时仅切核心，不动工具。
+- 常用示例：`proxy-on --with git,npm,pip`。
 
 ## 🗑️ 卸载
 
 如需完全卸载配置：
 
 ```bash
-# 1. 从 ~/.zshrc 中删除配置
-sed -i '' '/# === macOS 终端代理配置 ===/,/# === macOS 终端代理配置 ===/d' ~/.zshrc
+# 1. 从 ~/.zshrc 中删除 setproxy 标记区
+python3 - <<'PY'
+import re, pathlib
+path = pathlib.Path.home()/".zshrc"
+if path.exists():
+    data = path.read_text()
+    pattern = re.compile(r'# BEGIN setproxy.*?# END setproxy\n?', re.S)
+    path.write_text(re.sub(pattern,'',data))
+PY
 
-# 2. 删除 Git 代理配置
+# 2. 删除 Git 代理配置（如有）
 git config --global --unset http.proxy
 git config --global --unset https.proxy
 
-# 3. 删除 npm 代理配置（如已安装）
+# 3. 删除 npm 代理配置（如有）
 npm config delete proxy
 npm config delete https-proxy
 
 # 4. 删除 pip 配置文件（如已创建）
 rm -f ~/.pip/pip.conf
+
+# 5. 清理用户目录副本
+rm -rf ~/.setproxy
 ```
 
 ## 系统要求

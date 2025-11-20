@@ -10,74 +10,60 @@ This is a macOS terminal proxy configuration utility that provides a one-click s
 
 ### Setup and Installation
 ```bash
-# Initial setup (run once)
-source setup-proxy.sh
+# Initial setup (default SAFE: off, just installs aliases)
+./setproxy.sh off
 
-# Make all scripts executable
-chmod +x configs/*
+# Enable with tools (example)
+./setproxy.sh on --with git,npm,pip
+
+# Compatibility shim
+source setup-proxy.sh   # forwards to setproxy.sh
 ```
 
-### Daily Usage Commands
-After initial setup, these aliases are available in the terminal:
-- `proxy-on` - Enable proxy for current terminal session
-- `proxy-off` - Disable proxy for current terminal session
-- `proxy-status` - Check current proxy configuration status
-- `proxy-test` - Test proxy connectivity to Google
+### Daily Usage Commands (aliases map to setproxy)
+- `proxy-on [--with ...|--all]`  – Persist on + set current env
+- `proxy-off [--with ...|--all]` – Persist off + unset current env; tools only if specified
+- `proxy-status` – Show persisted state (zshrc) and current env
+- `proxy-test` – Basic connectivity test under current state
 
 ### Tool-Specific Commands
+Use the unified switch:
 ```bash
-# Configure Git proxy
-bash configs/gitconfig-proxy on    # Enable
-bash configs/gitconfig-proxy off   # Disable
-
-# Configure npm proxy
-bash configs/npmrc-proxy on        # Enable
-bash configs/npmrc-proxy off       # Disable
-
-# Configure pip proxy
-bash configs/pip-proxy on          # Enable
-bash configs/pip-proxy off         # Disable
+./setproxy.sh on  --with git,npm      # enable tools + core
+./setproxy.sh off --with git,npm      # disable tools + core off
+./setproxy.sh on  --all               # core + all tools (git/npm/pip/go/docker/cargo)
 ```
 
 ### Testing and Validation
 ```bash
-# Check if proxy port is listening
-lsof -i :7890
-
-# Test proxy connectivity
-curl -I https://google.com
-curl -I https://github.com
-
-# Check environment variables
-echo $HTTP_PROXY
-echo $HTTPS_PROXY
+./setproxy.sh status
+./setproxy.sh test
+./test.sh            # dry-run sanity checks
 ```
 
 ## Architecture
 
 The project uses a modular approach with separate configuration scripts for each tool:
 
-- **setup-proxy.sh**: Main orchestrator that runs all configurations and performs comprehensive checks
-- **configs/zshrc-proxy**: Shell configuration template that adds proxy management aliases to ~/.zshrc
-- **configs/gitconfig-proxy**: Manages Git's HTTP/HTTPS proxy settings via git config
-- **configs/npmrc-proxy**: Configures npm proxy via npm config commands
-- **configs/pip-proxy**: Sets up Python pip proxy by modifying ~/.pip/pip.conf
+- **setproxy.sh**: Primary CLI (on/off/status/test, handles zshrc marker + tool scripts)
+- **setup-proxy.sh**: Compatibility shim forwarding to setproxy.sh
+- **configs/zshrc-proxy**: Loads aliases in ~/.zshrc, dispatching to setproxy.sh
+- **configs/*-proxy**: Tool-specific toggles (git/npm/pip/go/docker/cargo)
 
-All scripts follow these patterns:
-- Accept "on" or "off" as arguments for enabling/disabling proxy
-- Use proxy server at 127.0.0.1:7890 (common proxy port)
-- Add clear markers to configuration files for easy identification
-- Check for existing configurations to avoid duplication
-- Handle missing tools gracefully with warning messages
+Principles:
+- Default safe: `setproxy.sh off` (no exports, no tool changes) is the baseline.
+- Use proxy server 127.0.0.1:PORT (default 7890; flag/env overrides).
+- Marked zshrc block `# BEGIN setproxy` ... `# END setproxy`, rewritten on on/off.
+- Missing tools are tolerated with warnings; scripts are idempotent.
 
 ## Key Technical Details
 
-- **Proxy Server**: `127.0.0.1:7890` (default port for most proxy tools)
-- **Shell**: Assumes zsh (default on modern macOS)
-- **NO_PROXY**: Excludes local networks, private IP ranges, and macOS-specific subnets
-- **Configuration Markers**: Uses `# === macOS 终端代理配置 ===` to mark added configurations
-- **Language**: All user-facing messages are in Chinese
-- **Error Handling**: Scripts check for tool availability before attempting configuration
+- **Proxy Server**: `127.0.0.1:7890` by default; override via `--port` or `SETPROXY_PORT`.
+- **Shell**: Assumes zsh (default on modern macOS).
+- **NO_PROXY**: Local + RFC1918 ranges (see setproxy.sh for list).
+- **Configuration Markers**: `# BEGIN setproxy` / `# END setproxy` in ~/.zshrc.
+- **Language**: User-facing messages in Chinese.
+- **Error Handling**: Checks tool availability; `--force` for non-interactive overwrite; dry-run supported.
 
 ## Important Notes
 
