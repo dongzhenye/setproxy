@@ -1,84 +1,109 @@
 #!/bin/bash
-# Docker 代理配置脚本
+# Docker 代理配置（on/off）
+set -euo pipefail
 
-# 加载通用函数
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 PROXY_URL="$(get_proxy_url)"
 DOCKER_CONFIG_DIR="$HOME/.docker"
 DOCKER_CONFIG_FILE="$DOCKER_CONFIG_DIR/config.json"
 
-if [ "$1" = "on" ]; then
-    echo "🐳 配置Docker代理..."
-    
-    # 创建 .docker 目录
-    mkdir -p "$DOCKER_CONFIG_DIR"
-    
-    # 检查是否已有配置文件
-    if [ -f "$DOCKER_CONFIG_FILE" ]; then
-        # 备份原文件
-        cp "$DOCKER_CONFIG_FILE" "$DOCKER_CONFIG_FILE.backup.$(date +%Y%m%d%H%M%S)"
-        
-        # 使用 Python 来安全地更新 JSON
-        python3 -c "
-import json
-import sys
-
-with open('$DOCKER_CONFIG_FILE', 'r') as f:
-    config = json.load(f)
-
-config['proxies'] = {
-    'default': {
-        'httpProxy': '$PROXY_URL',
-        'httpsProxy': '$PROXY_URL',
-        'noProxy': 'localhost,127.0.0.1'
-    }
-}
-
-with open('$DOCKER_CONFIG_FILE', 'w') as f:
-    json.dump(config, f, indent=2)
-" 2>/dev/null || {
-            echo "⚠️  无法更新Docker配置，请手动配置"
-            exit 1
-        }
-    else
-        # 创建新配置
-        cat > "$DOCKER_CONFIG_FILE" << EOF
-{
-  "proxies": {
-    "default": {
-      "httpProxy": "$PROXY_URL",
-      "httpsProxy": "$PROXY_URL",
-      "noProxy": "localhost,127.0.0.1"
-    }
-  }
-}
+usage() {
+  cat <<'EOF'
+用法: docker-proxy <on|off>
+说明: 按 setproxy 的地址写入/清理 ~/.docker/config.json 中的代理配置。
 EOF
-    fi
-    
-    echo "✅ Docker代理已开启"
-    echo "配置文件: $DOCKER_CONFIG_FILE"
-    
-elif [ "$1" = "off" ]; then
-    echo "🐳 关闭Docker代理..."
-    
-    if [ -f "$DOCKER_CONFIG_FILE" ]; then
-        # 使用 Python 移除代理配置
-        python3 -c "
-import json
+}
 
-with open('$DOCKER_CONFIG_FILE', 'r') as f:
-    config = json.load(f)
+log() { echo "[docker] $*"; }
 
-if 'proxies' in config:
-    del config['proxies']
+ensure_dir() {
+  mkdir -p "$DOCKER_CONFIG_DIR"
+}
 
-with open('$DOCKER_CONFIG_FILE', 'w') as f:
-    json.dump(config, f, indent=2)
-" 2>/dev/null || echo "⚠️  无法更新Docker配置"
-    fi
-    
-    echo "✅ Docker代理已关闭"
-else
-    echo "用法: $0 [on|off]"
+backup_config() {
+  [ -f "$DOCKER_CONFIG_FILE" ] || return 0
+  local ts
+  ts="$(date +%Y%m%d%H%M%S)"
+  cp "$DOCKER_CONFIG_FILE" "$DOCKER_CONFIG_FILE.backup.$ts"
+  log "已备份: $DOCKER_CONFIG_FILE.backup.$ts"
+}
+
+write_proxy_config() {
+  python3 - "$DOCKER_CONFIG_FILE" "$PROXY_URL" <<'PY' || exit 1
+import json, sys, pathlib
+cfg_path = pathlib.Path(sys.argv[1])
+proxy_url = sys.argv[2]
+data = {}
+if cfg_path.exists():
+    try:
+        data = json.loads(cfg_path.read_text())
+    except Exception as e:
+        print(f"[docker] 读取原配置失败: {e}", file=sys.stderr)
+        sys.exit(1)
+data["proxies"] = {
+    "default": {
+        "httpProxy": proxy_url,
+        "httpsProxy": proxy_url,
+        "noProxy": "localhost,127.0.0.1"
+    }
+}
+cfg_path.write_text(json.dumps(data, indent=2))
+PY
+}
+
+remove_proxy_config() {
+  [ -f "$DOCKER_CONFIG_FILE" ] || { log "未找到配置文件，无需移除"; return; }
+  python3 - "$DOCKER_CONFIG_FILE" <<'PY' || exit 1
+import json, sys, pathlib
+cfg_path = pathlib.Path(sys.argv[1])
+try:
+    data = json.loads(cfg_path.read_text())
+except Exception as e:
+    print(f"[docker] 读取原配置失败: {e}", file=sys.stderr)
+    sys.exit(1)
+data.pop("proxies", None)
+cfg_path.write_text(json.dumps(data, indent=2))
+PY
+}
+
+show_config() {
+  if [ -f "$DOCKER_CONFIG_FILE" ]; then
+    local proxy_value
+    proxy_value="$(python3 - "$DOCKER_CONFIG_FILE" <<'PY'
+import json, sys, pathlib
+cfg_path = pathlib.Path(sys.argv[1])
+try:
+    data = json.loads(cfg_path.read_text())
+    proxy = data.get("proxies", {}).get("default", {})
+    print(proxy.get("httpProxy", "unset"))
+except Exception:
+    print("unset")
+PY
+)"
+    log "配置文件: $DOCKER_CONFIG_FILE"
+    log "httpProxy: $proxy_value"
+  else
+    log "配置文件: 未找到 ($DOCKER_CONFIG_FILE)"
+  fi
+}
+
+cmd="${1:-}"
+
+case "$cmd" in
+  on)
+    ensure_dir
+    backup_config
+    log "设置 Docker 代理 -> $PROXY_URL"
+    write_proxy_config
+    show_config
+    ;;
+  off)
+    log "清理 Docker 代理配置"
+    remove_proxy_config
+    show_config
+    ;;
+  *)
+    usage
     exit 1
-fi
+    ;;
+esac
