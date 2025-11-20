@@ -130,9 +130,16 @@ existing_block() {
 
 block_payload_empty() {
   # $1: block text
+  # 判空策略：至少包含一行非标记的内容或包含 state/EXPORT 才算非空
   local payload
   payload="$(echo "$1" | sed -e "s|$BEGIN_MARK||" -e "s|$END_MARK||" -e '/^[[:space:]]*$/d')"
-  [ -z "$payload" ]
+  if [ -z "$payload" ]; then
+    return 0
+  fi
+  echo "$payload" | grep -q "setproxy state" && return 1
+  echo "$payload" | grep -q "EXPORT" && return 1
+  echo "$payload" | grep -q "export " && return 1
+  return 0
 }
 
 render_block() {
