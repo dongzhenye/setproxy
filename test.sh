@@ -1,46 +1,21 @@
 #!/bin/bash
-# 简单的功能测试脚本
+# 简单自检（以 dry-run 为主，避免改动真实环境）
+set -e
 
-echo "🧪 测试代理配置功能..."
-echo ""
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 测试 source 命令
-echo "1. 测试配置加载..."
-if source configs/zshrc-proxy 2>/dev/null; then
-    echo "   ✅ 配置文件加载成功"
-else
-    echo "   ❌ 配置文件加载失败"
-    exit 1
-fi
+echo "1) dry-run 开启代理（指定工具）"
+bash "$ROOT/setproxy.sh" on --with git,npm,pip --port 7890 --dry-run
 
-# 测试命令是否存在
-echo ""
-echo "2. 测试命令可用性..."
-commands=("proxy-on" "proxy-off" "proxy-status" "proxy-test" "proxy_on" "proxy_off" "proxy_status" "proxy_test")
-for cmd in "${commands[@]}"; do
-    if type $cmd &>/dev/null; then
-        echo "   ✅ $cmd 命令可用"
-    else
-        echo "   ❌ $cmd 命令不可用"
-    fi
-done
+echo "2) dry-run 关闭代理（全工具）"
+bash "$ROOT/setproxy.sh" off --all --force --dry-run
 
-# 测试代理开关
-echo ""
-echo "3. 测试代理开关功能..."
-proxy-off >/dev/null 2>&1
-if [ -z "$HTTP_PROXY" ]; then
-    echo "   ✅ proxy-off 正常工作"
-else
-    echo "   ❌ proxy-off 未能清除环境变量"
-fi
+echo "3) 状态查看"
+bash "$ROOT/setproxy.sh" status || true
 
-proxy-on >/dev/null 2>&1
-if [ "$HTTP_PROXY" = "http://127.0.0.1:7890" ]; then
-    echo "   ✅ proxy-on 正常工作"
-else
-    echo "   ❌ proxy-on 未能设置环境变量"
-fi
+echo "4) 测试命令（不阻塞，即便失败也继续）"
+set +e
+bash "$ROOT/setproxy.sh" test || true
+set -e
 
-echo ""
-echo "✨ 基础功能测试完成！"
+echo "✅ 自检脚本完成"
