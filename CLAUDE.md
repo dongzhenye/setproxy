@@ -71,7 +71,7 @@ Principles:
 - Scripts are idempotent - safe to run multiple times
 - The project assumes proxy software is running on port 7890
 - Configuration changes are appended to existing config files, not replacing them
-- Scripts use emoji indicators for status messages (🚀, ✅, ❌, ⚠️, etc.)
+- Tool scripts use bracketed prefixes (e.g., `[git]`) with concise Chinese messages; avoid emoji
 
 ## User Preferences
 
