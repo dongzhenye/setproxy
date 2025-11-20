@@ -1,32 +1,45 @@
 #!/bin/bash
-# Git 代理配置
-# 使用方法: 
-# 1. 开启代理: bash configs/gitconfig-proxy on
-# 2. 关闭代理: bash configs/gitconfig-proxy off
+# Git 代理配置（on/off）
+set -euo pipefail
 
-# 加载通用函数
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 PROXY_URL="$(get_proxy_url)"
 
-# 检查参数
-if [ "$1" == "on" ]; then
-    echo "🔧 配置Git代理..."
+usage() {
+  cat <<'EOF'
+用法: gitconfig-proxy <on|off>
+说明: 按 setproxy 的地址开启/关闭 Git 全局代理。
+EOF
+}
+
+log() { echo "[git] $*"; }
+
+require_git() {
+  command -v git >/dev/null 2>&1 || {
+    log "未找到 git 命令，请先安装 Git"
+    exit 1
+  }
+}
+
+cmd="${1:-}"
+
+case "$cmd" in
+  on)
+    require_git
+    log "设置 Git 全局代理 -> $PROXY_URL"
     git config --global http.proxy "$PROXY_URL"
     git config --global https.proxy "$PROXY_URL"
-    echo "✅ Git代理已开启"
-    echo "HTTP代理: $(git config --global --get http.proxy)"
-    echo "HTTPS代理: $(git config --global --get https.proxy)"
-elif [ "$1" == "off" ]; then
-    echo "🔧 移除Git代理..."
-    git config --global --unset http.proxy
-    git config --global --unset https.proxy
-    echo "🔴 Git代理已关闭"
-else
-    echo "使用方法:"
-    echo "  开启代理: bash configs/gitconfig-proxy on"
-    echo "  关闭代理: bash configs/gitconfig-proxy off"
-    echo ""
-    echo "当前配置:"
-    echo "  HTTP代理: $(git config --global --get http.proxy || echo '未设置')"
-    echo "  HTTPS代理: $(git config --global --get https.proxy || echo '未设置')"
-fi 
+    log "完成 (http.proxy=$(git config --global --get http.proxy 2>/dev/null || echo unset))"
+    ;;
+  off)
+    require_git
+    log "清理 Git 全局代理"
+    git config --global --unset-all http.proxy >/dev/null 2>&1 || true
+    git config --global --unset-all https.proxy >/dev/null 2>&1 || true
+    log "完成 (http.proxy=$(git config --global --get http.proxy 2>/dev/null || echo unset))"
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac
