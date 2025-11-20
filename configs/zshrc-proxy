@@ -1,188 +1,33 @@
-# macOS 终端代理配置
-# 将此内容添加到 ~/.zshrc 文件中
+# setproxy 函数（需配合 ~/.setproxy/setproxy.sh）
 
-# 获取脚本所在目录
-SCRIPT_DIR="$HOME/.setproxy"
-
-# 加载通用函数
-if [ -f "$SCRIPT_DIR/common.sh" ]; then
-    source "$SCRIPT_DIR/common.sh"
-elif [ -f "$HOME/.setproxy/common.sh" ]; then
-    source "$HOME/.setproxy/common.sh"
-else
-    # 后备方案：如果找不到 common.sh，使用内联函数
-    get_proxy_url() {
-        local port="7890"
-        [ -n "$SETPROXY_PORT" ] && port="$SETPROXY_PORT"
-        echo "http://127.0.0.1:$port"
-    }
+SETPROXY_BIN="${HOME}/.setproxy/setproxy.sh"
+if [ ! -x "$SETPROXY_BIN" ]; then
+  # 兜底：尝试使用项目内脚本
+  SETPROXY_BIN="$(dirname "${BASH_SOURCE[0]}")/../setproxy.sh"
 fi
 
-# 获取代理URL
-PROXY_URL="$(get_proxy_url)"
+setproxy() {
+  bash "$SETPROXY_BIN" "$@"
+}
 
-# 代理快捷命令
 proxy-on() {
-    local proxy_url="$(get_proxy_url)"
-    export HTTP_PROXY="$proxy_url"
-    export HTTPS_PROXY="$proxy_url"
-    export ALL_PROXY="$proxy_url"
-    export http_proxy="$proxy_url"
-    export https_proxy="$proxy_url"
-    export all_proxy="$proxy_url"
-    export NO_PROXY="localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,100.64.0.0/10,17.0.0.0/8,169.254.0.0/16,224.0.0.0/4,240.0.0.0/4"
-    export no_proxy="${NO_PROXY}"
-    echo "✅ 代理已开启 - $proxy_url"
+  bash "$SETPROXY_BIN" on "$@"
 }
 
 proxy-off() {
-    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy NO_PROXY no_proxy
-    echo "🔴 代理已关闭"
+  bash "$SETPROXY_BIN" off "$@"
 }
 
 proxy-status() {
-    echo "HTTP_PROXY: ${HTTP_PROXY:-未设置}"
-    echo "HTTPS_PROXY: ${HTTPS_PROXY:-未设置}"
-    echo "ALL_PROXY: ${ALL_PROXY:-未设置}"
+  bash "$SETPROXY_BIN" status "$@"
 }
 
-# 检查代理连接的函数
 proxy-test() {
-    echo "🔍 开始代理测试..."
-    echo ""
-    
-    # 检查curl是否可用
-    if ! command -v curl > /dev/null; then
-        echo "❌ curl命令不可用，无法进行测试"
-        return 1
-    fi
-    
-    # 1. 检查IP地址和位置
-    echo "📍 IP地址检测:"
-    echo "-------------------"
-    
-    # 尝试多个IP检测服务，确保可靠性
-    local ip_info=""
-    local service_used=""
-    
-    # 首选 ipinfo.io (返回JSON格式，包含国家信息)
-    ip_info=$(curl -s --connect-timeout 5 --max-time 10 https://ipinfo.io 2>/dev/null)
-    if [ $? -eq 0 ] && [ -n "$ip_info" ]; then
-        service_used="ipinfo.io"
-        local ip=$(echo "$ip_info" | grep -o '"ip": *"[^"]*"' | cut -d'"' -f4)
-        local city=$(echo "$ip_info" | grep -o '"city": *"[^"]*"' | cut -d'"' -f4)
-        local region=$(echo "$ip_info" | grep -o '"region": *"[^"]*"' | cut -d'"' -f4)
-        local country=$(echo "$ip_info" | grep -o '"country": *"[^"]*"' | cut -d'"' -f4)
-        local org=$(echo "$ip_info" | grep -o '"org": *"[^"]*"' | cut -d'"' -f4)
-        
-        echo "  IP地址: $ip"
-        echo "  位置: $city, $region, $country"
-        echo "  运营商: $org"
-    else
-        # 备选方案1: ifconfig.me (简单但可靠)
-        local ip=$(curl -s --connect-timeout 5 --max-time 10 https://ifconfig.me 2>/dev/null)
-        if [ $? -eq 0 ] && [ -n "$ip" ]; then
-            service_used="ifconfig.me"
-            echo "  IP地址: $ip"
-            # 尝试获取国家信息
-            local country=$(curl -s --connect-timeout 5 --max-time 10 https://ifconfig.me/country 2>/dev/null)
-            if [ -n "$country" ]; then
-                echo "  国家: $country"
-            fi
-        else
-            # 备选方案2: icanhazip.com
-            local ip=$(curl -s --connect-timeout 5 --max-time 10 https://icanhazip.com 2>/dev/null)
-            if [ $? -eq 0 ] && [ -n "$ip" ]; then
-                service_used="icanhazip.com"
-                echo "  IP地址: $ip"
-            else
-                echo "  ❌ 无法获取IP地址信息"
-            fi
-        fi
-    fi
-    
-    if [ -n "$service_used" ]; then
-        echo "  数据来源: $service_used"
-    fi
-    
-    echo ""
-    
-    # 2. 测试代理连接
-    echo "🌐 连接测试:"
-    echo "-------------------"
-    
-    # 测试Google
-    echo -n "  Google: "
-    local google_result=$(curl -s -I --connect-timeout 5 --max-time 10 -w "\n%{http_code}" https://google.com 2>&1)
-    local http_code=$(echo "$google_result" | tail -n1)
-    if [[ "$http_code" =~ ^[23][0-9][0-9]$ ]]; then
-        echo "✅ 连接成功"
-    else
-        echo "❌ 连接失败"
-        if [ -n "$HTTP_PROXY" ] && ! lsof -i :$(echo "$HTTP_PROXY" | grep -o '[0-9]*$') > /dev/null 2>&1; then
-            echo "     └─ 提示: 代理端口未监听，请检查代理软件"
-        elif [[ "$google_result" =~ "SSL_ERROR" ]] || [[ "$google_result" =~ "SSL_connect" ]]; then
-            echo "     └─ 提示: SSL连接错误，可能是代理配置问题"
-        fi
-    fi
-    
-    # 测试GitHub
-    echo -n "  GitHub: "
-    local github_result=$(curl -s -I --connect-timeout 5 --max-time 10 -w "\n%{http_code}" https://github.com 2>&1)
-    local http_code=$(echo "$github_result" | tail -n1)
-    if [[ "$http_code" =~ ^[23][0-9][0-9]$ ]]; then
-        echo "✅ 连接成功"
-    else
-        echo "❌ 连接失败"
-    fi
-    
-    # 测试YouTube (通常需要代理)
-    echo -n "  YouTube: "
-    local youtube_result=$(curl -s -I --connect-timeout 5 --max-time 10 -w "\n%{http_code}" https://youtube.com 2>&1)
-    local http_code=$(echo "$youtube_result" | tail -n1)
-    if [[ "$http_code" =~ ^[23][0-9][0-9]$ ]]; then
-        echo "✅ 连接成功"
-    else
-        echo "❌ 连接失败"
-        if [ -z "$HTTP_PROXY" ]; then
-            echo "     └─ 提示: YouTube通常需要代理才能访问"
-        fi
-    fi
-    
-    echo ""
-    
-    # 3. 代理状态总结
-    echo "📊 代理状态:"
-    echo "-------------------"
-    if [ -n "$HTTP_PROXY" ]; then
-        echo "  ✅ 代理已启用: $HTTP_PROXY"
-        # 检查代理端口是否在监听
-        local proxy_port=$(echo "$HTTP_PROXY" | grep -o ':[0-9]*' | tr -d ':')
-        if [ -z "$proxy_port" ]; then
-            # 如果无法从 HTTP_PROXY 提取端口，使用配置的端口
-            proxy_port=$(get_proxy_url | grep -o ':[0-9]*' | tr -d ':')
-        fi
-        if lsof -i :${proxy_port} > /dev/null 2>&1; then
-            echo "  ✅ 代理服务运行正常 (端口 $proxy_port)"
-        else
-            echo "  ⚠️  代理端口 $proxy_port 未监听，请检查代理软件"
-        fi
-    else
-        echo "  ⚠️  代理未启用 (使用 proxy-on 开启)"
-    fi
-    
-    echo ""
+  bash "$SETPROXY_BIN" test "$@"
 }
 
-# 兼容下划线写法（方便用户使用）
+# 兼容下划线写法
 alias proxy_on=proxy-on
 alias proxy_off=proxy-off
 alias proxy_status=proxy-status
 alias proxy_test=proxy-test
-
-# 智能代理：检查代理服务是否运行，如果运行则自动开启代理
-# 取消注释下面的行来启用自动代理
-# proxy_port=$(get_proxy_url | grep -o ':[0-9]*' | tr -d ':')
-# if lsof -i :${proxy_port} > /dev/null 2>&1; then
-#     proxy-on > /dev/null 2>&1
-# fi 
