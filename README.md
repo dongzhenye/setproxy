@@ -36,6 +36,8 @@ cd setproxy
 # 如是非交互环境、安全起见请显式确认
 # ./setproxy.sh on --with git,npm --force
 
+# 重复执行 setproxy on/off 会直接覆盖标记区（无确认）；仅旧配置/非交互场景需 --force
+
 # 查看状态/测试（不改配置）
 ./setproxy.sh status
 ./setproxy.sh test

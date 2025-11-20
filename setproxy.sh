@@ -353,7 +353,7 @@ main() {
     if $DRY_RUN; then
       log "[dry-run] 将覆盖上述片段并应用 setproxy $command"
     else
-      require_interaction_or_force "是否覆盖现有片段并应用 setproxy $command? "
+      log "覆盖现有 setproxy 片段并应用 setproxy $command"
     fi
   fi
 
