@@ -1,34 +1,35 @@
 #!/bin/bash
-# Rust Cargo 代理配置脚本
+# Cargo 代理配置（on/off）
+set -euo pipefail
 
-# 加载通用函数
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 PROXY_URL="$(get_proxy_url)"
 CARGO_CONFIG_DIR="$HOME/.cargo"
 CARGO_CONFIG_FILE="$CARGO_CONFIG_DIR/config.toml"
 
-if [ "$1" = "on" ]; then
-    echo "🦀 配置Cargo代理..."
-    
-    # 创建 .cargo 目录
-    mkdir -p "$CARGO_CONFIG_DIR"
-    
-    # 备份原配置
-    if [ -f "$CARGO_CONFIG_FILE" ]; then
-        cp "$CARGO_CONFIG_FILE" "$CARGO_CONFIG_FILE.backup.$(date +%Y%m%d%H%M%S)"
-    fi
-    
-    # 检查是否已有代理配置
-    if grep -q "\[http\]" "$CARGO_CONFIG_FILE" 2>/dev/null; then
-        echo "⚠️  Cargo配置文件已有[http]部分，请手动添加代理配置"
-        echo "在 $CARGO_CONFIG_FILE 中添加:"
-        echo "[http]"
-        echo "proxy = \"$PROXY_URL\""
-        echo "[https]"
-        echo "proxy = \"$PROXY_URL\""
-    else
-        # 添加代理配置
-        cat >> "$CARGO_CONFIG_FILE" << EOF
+usage() {
+  cat <<'EOF'
+用法: cargo-proxy <on|off>
+说明: 按 setproxy 的地址写入/清理 ~/.cargo/config.toml 中的代理配置。
+EOF
+}
+
+log() { echo "[cargo] $*"; }
+
+ensure_dir() {
+  mkdir -p "$CARGO_CONFIG_DIR"
+}
+
+backup_config() {
+  [ -f "$CARGO_CONFIG_FILE" ] || return 0
+  local ts
+  ts="$(date +%Y%m%d%H%M%S)"
+  cp "$CARGO_CONFIG_FILE" "$CARGO_CONFIG_FILE.backup.$ts"
+  log "已备份: $CARGO_CONFIG_FILE.backup.$ts"
+}
+
+append_proxy_block() {
+  cat >> "$CARGO_CONFIG_FILE" <<EOF
 
 [http]
 proxy = "$PROXY_URL"
@@ -36,20 +37,67 @@ proxy = "$PROXY_URL"
 [https]
 proxy = "$PROXY_URL"
 EOF
-        echo "✅ Cargo代理已开启"
-        echo "配置文件: $CARGO_CONFIG_FILE"
-    fi
-    
-elif [ "$1" = "off" ]; then
-    echo "🦀 关闭Cargo代理..."
-    
-    if [ -f "$CARGO_CONFIG_FILE" ]; then
-        # 移除代理配置
-        sed -i '' '/\[http\]/,/^$/d' "$CARGO_CONFIG_FILE" 2>/dev/null
-        sed -i '' '/\[https\]/,/^$/d' "$CARGO_CONFIG_FILE" 2>/dev/null
-        echo "✅ Cargo代理已关闭"
-    fi
-else
-    echo "用法: $0 [on|off]"
+}
+
+remove_proxy_block() {
+  [ -f "$CARGO_CONFIG_FILE" ] || { log "未找到 $CARGO_CONFIG_FILE，无需移除"; return; }
+  python3 - "$CARGO_CONFIG_FILE" <<'PY'
+import sys, pathlib, re
+path = pathlib.Path(sys.argv[1])
+data = path.read_text()
+patterns = [
+    r"\n*\[http\][^\[]*?(?=\n\[|$)",
+    r"\n*\[https\][^\[]*?(?=\n\[|$)",
+]
+for pat in patterns:
+    data = re.sub(pat, "\n", data, flags=re.S)
+clean = data.strip()
+path.write_text((clean + "\n") if clean else "")
+PY
+}
+
+show_config() {
+  if [ -f "$CARGO_CONFIG_FILE" ]; then
+    local http_proxy https_proxy proxy_info
+    proxy_info="$(python3 - "$CARGO_CONFIG_FILE" <<'PY'
+import sys, pathlib, re
+path = pathlib.Path(sys.argv[1])
+data = path.read_text()
+def find_proxy(section):
+    pattern = rf"\[{section}\][^\[]*?proxy\s*=\s*['\"]?([^\s'\"]+)"
+    m = re.search(pattern, data, re.I)
+    return m.group(1) if m else "unset"
+print(find_proxy("http"))
+print(find_proxy("https"))
+PY
+)"
+    http_proxy="$(echo "$proxy_info" | sed -n '1p')"
+    https_proxy="$(echo "$proxy_info" | sed -n '2p')"
+    log "配置文件: $CARGO_CONFIG_FILE"
+    log "http.proxy: ${http_proxy:-unset}"
+    log "https.proxy: ${https_proxy:-unset}"
+  else
+    log "配置文件: 未找到 ($CARGO_CONFIG_FILE)"
+  fi
+}
+
+cmd="${1:-}"
+
+case "$cmd" in
+  on)
+    ensure_dir
+    backup_config
+    log "设置 Cargo 代理 -> $PROXY_URL"
+    append_proxy_block
+    show_config
+    ;;
+  off)
+    log "清理 Cargo 代理配置"
+    remove_proxy_block
+    show_config
+    ;;
+  *)
+    usage
     exit 1
-fi
+    ;;
+esac
