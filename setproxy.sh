@@ -33,15 +33,22 @@ EOF
 
 join_by() { local IFS="$1"; shift; echo "$*"; }
 
+copy_if_changed() {
+  local src="$1" dst="$2"
+  if [ -f "$dst" ] && command cmp -s "$src" "$dst"; then
+    return
+  fi
+  command cp -f "$src" "$dst"
+}
+
 ensure_user_dir() {
   mkdir -p "$USER_DIR"
-  local cp_cmd="command cp -f"
   for f in common.sh zshrc-proxy gitconfig-proxy npmrc-proxy pip-proxy go-proxy docker-proxy cargo-proxy; do
     if [ -f "$PROJECT_DIR/configs/$f" ]; then
-      $cp_cmd "$PROJECT_DIR/configs/$f" "$USER_DIR/$f"
+      copy_if_changed "$PROJECT_DIR/configs/$f" "$USER_DIR/$f"
     fi
   done
-  $cp_cmd "$PROJECT_DIR/setproxy.sh" "$USER_DIR/setproxy.sh"
+  copy_if_changed "$PROJECT_DIR/setproxy.sh" "$USER_DIR/setproxy.sh"
 }
 
 is_tool_supported() {
