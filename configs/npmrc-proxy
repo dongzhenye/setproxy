@@ -21,13 +21,45 @@ require_npm() {
   }
 }
 
+config_get() {
+  local key="$1" scope="$2"
+  # 避免环境变量覆盖，显式屏蔽 npm_config_* 并指定 scope
+  env -u npm_config_proxy -u npm_config_https_proxy npm config get "$key" --location="$scope" 2>/dev/null || echo unset
+}
+
 show_config() {
   local scopes=("user" "global")
   for scope in "${scopes[@]}"; do
-    log "[$scope] HTTP proxy: $(npm config get proxy --location=$scope 2>/dev/null || echo unset)"
-    log "[$scope] HTTPS proxy: $(npm config get https-proxy --location=$scope 2>/dev/null || echo unset)"
-    log "[$scope] Registry: $(npm config get registry --location=$scope 2>/dev/null || echo unset)"
+    log "[$scope] HTTP proxy: $(config_get proxy "$scope")"
+    log "[$scope] HTTPS proxy: $(config_get https-proxy "$scope")"
+    log "[$scope] Registry: $(config_get registry "$scope")"
   done
+}
+
+remove_keys_in_file() {
+  local file="$1"
+  [ -n "$file" ] || return 0
+  if [ ! -e "$file" ]; then
+    return 0
+  fi
+  if [ ! -w "$file" ]; then
+    log "无法写入 $file，跳过清理（请手动检查）"
+    return 0
+  fi
+  python3 - "$file" <<'PY'
+import sys, pathlib, re
+path = pathlib.Path(sys.argv[1])
+data = path.read_text()
+pattern = re.compile(r'^\s*(proxy|https-proxy|registry)\s*=.*$', re.M)
+new_lines = []
+for line in data.splitlines():
+    if re.match(pattern, line):
+        continue
+    if line.strip() == "":
+        continue
+    new_lines.append(line)
+path.write_text("\n".join(new_lines) + ("\n" if new_lines else ""))
+PY
 }
 
 cmd="${1:-}"
@@ -49,6 +81,13 @@ case "$cmd" in
       npm config delete https-proxy --location="$scope" >/dev/null 2>&1 || true
       npm config delete registry --location="$scope" >/dev/null 2>&1 || true
     done
+    # 兜底：直接清理配置文件中的相关键，避免 delete 失效
+    remove_keys_in_file "$(npm config get userconfig 2>/dev/null || true)"
+    remove_keys_in_file "$(npm config get globalconfig 2>/dev/null || true)"
+    if [ -n "${npm_config_proxy:-}" ] || [ -n "${npm_config_https_proxy:-}" ]; then
+      log "清理当前会话中的 npm_config_proxy 环境变量"
+      unset npm_config_proxy npm_config_https_proxy
+    fi
     show_config
     ;;
   *)

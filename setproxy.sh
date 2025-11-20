@@ -154,7 +154,8 @@ EOF
   else
     cat <<'EOF'
 # proxies are disabled (core off)
-unset PROXY_URL HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy NO_PROXY no_proxy
+unset PROXY_URL HTTP_PROXY HTTPS_PROXY ALL_PROXY
+unset http_proxy https_proxy all_proxy NO_PROXY no_proxy
 EOF
   fi
   echo "$END_MARK"
@@ -213,7 +214,8 @@ apply_env_on() {
 }
 
 apply_env_off() {
-  unset PROXY_URL HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy NO_PROXY no_proxy
+  unset PROXY_URL HTTP_PROXY HTTPS_PROXY ALL_PROXY
+  unset http_proxy https_proxy all_proxy NO_PROXY no_proxy
 }
 
 run_tool() {
