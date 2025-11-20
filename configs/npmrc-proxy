@@ -1,35 +1,52 @@
 #!/bin/bash
-# npm 代理配置
-# 使用方法: 
-# 1. 开启代理: bash configs/npmrc-proxy on
-# 2. 关闭代理: bash configs/npmrc-proxy off
+# npm 代理配置（on/off）
+set -euo pipefail
 
-# 加载通用函数
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 PROXY_URL="$(get_proxy_url)"
 
-# 检查参数
-if [ "$1" == "on" ]; then
-    echo "📦 配置npm代理..."
-    npm config set proxy $PROXY_URL
-    npm config set https-proxy $PROXY_URL
+usage() {
+  cat <<'EOF'
+用法: npmrc-proxy <on|off>
+说明: 按 setproxy 的地址开启/关闭 npm 代理。
+EOF
+}
+
+log() { echo "[npm] $*"; }
+
+require_npm() {
+  command -v npm >/dev/null 2>&1 || {
+    log "未找到 npm 命令，请先安装 Node/npm"
+    exit 1
+  }
+}
+
+show_config() {
+  log "HTTP proxy: $(npm config get proxy 2>/dev/null || echo unset)"
+  log "HTTPS proxy: $(npm config get https-proxy 2>/dev/null || echo unset)"
+  log "Registry: $(npm config get registry 2>/dev/null || echo unset)"
+}
+
+cmd="${1:-}"
+
+case "$cmd" in
+  on)
+    require_npm
+    log "设置 npm 代理 -> $PROXY_URL"
+    npm config set proxy "$PROXY_URL"
+    npm config set https-proxy "$PROXY_URL"
     npm config set registry https://registry.npmjs.org/
-    echo "✅ npm代理已开启"
-    echo "HTTP代理: $(npm config get proxy)"
-    echo "HTTPS代理: $(npm config get https-proxy)"
-    echo "Registry: $(npm config get registry)"
-elif [ "$1" == "off" ]; then
-    echo "📦 移除npm代理..."
-    npm config delete proxy
-    npm config delete https-proxy
-    echo "🔴 npm代理已关闭"
-else
-    echo "使用方法:"
-    echo "  开启代理: bash configs/npmrc-proxy on"
-    echo "  关闭代理: bash configs/npmrc-proxy off"
-    echo ""
-    echo "当前配置:"
-    echo "  HTTP代理: $(npm config get proxy || echo '未设置')"
-    echo "  HTTPS代理: $(npm config get https-proxy || echo '未设置')"
-    echo "  Registry: $(npm config get registry)"
-fi 
+    show_config
+    ;;
+  off)
+    require_npm
+    log "清理 npm 代理"
+    npm config delete proxy >/dev/null 2>&1 || true
+    npm config delete https-proxy >/dev/null 2>&1 || true
+    show_config
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac
