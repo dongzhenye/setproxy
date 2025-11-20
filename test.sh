@@ -18,4 +18,4 @@ set +e
 bash "$ROOT/setproxy.sh" test || true
 set -e
 
-echo "✅ 自检脚本完成"
+echo "[test] 自检脚本完成"

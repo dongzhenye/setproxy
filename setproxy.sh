@@ -260,11 +260,11 @@ test_cmd() {
   local ip=$(curl -s --connect-timeout 5 --max-time 8 https://ipinfo.io/ip 2>/dev/null || true)
   [ -n "$ip" ] && echo "出口 IP: $ip" || echo "出口 IP: <获取失败>"
   for target in https://google.com https://github.com https://youtube.com; do
-    printf "%-18s" "$target"
+    printf "%-28s" "$target"
     if curl -s -I --connect-timeout 5 --max-time 8 "$target" >/dev/null 2>&1; then
-      echo "✅"
+      echo "ok"
     else
-      echo "❌"
+      echo "fail"
     fi
   done
 }
