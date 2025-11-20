@@ -128,6 +128,13 @@ existing_block() {
   fi
 }
 
+block_payload_empty() {
+  # $1: block text
+  local payload
+  payload="$(echo "$1" | sed -e "s|$BEGIN_MARK||" -e "s|$END_MARK||" -e '/^[[:space:]]*$/d')"
+  [ -z "$payload" ]
+}
+
 render_block() {
   local state="$1" port="$2"
   local proxy_url="http://127.0.0.1:${port}"
@@ -350,6 +357,9 @@ main() {
   if [ "$command" != "status" ] && [ "$command" != "test" ] && [ -n "$current_block" ]; then
     echo "检测到现有 setproxy 片段："
     echo "$current_block"
+    if block_payload_empty "$current_block"; then
+      log "标记区为空，将覆写"
+    fi
     if $DRY_RUN; then
       log "[dry-run] 将覆盖上述片段并应用 setproxy $command"
     else
