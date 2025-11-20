@@ -22,9 +22,12 @@ require_npm() {
 }
 
 show_config() {
-  log "HTTP proxy: $(npm config get proxy 2>/dev/null || echo unset)"
-  log "HTTPS proxy: $(npm config get https-proxy 2>/dev/null || echo unset)"
-  log "Registry: $(npm config get registry 2>/dev/null || echo unset)"
+  local scopes=("user" "global")
+  for scope in "${scopes[@]}"; do
+    log "[$scope] HTTP proxy: $(npm config get proxy --location=$scope 2>/dev/null || echo unset)"
+    log "[$scope] HTTPS proxy: $(npm config get https-proxy --location=$scope 2>/dev/null || echo unset)"
+    log "[$scope] Registry: $(npm config get registry --location=$scope 2>/dev/null || echo unset)"
+  done
 }
 
 cmd="${1:-}"
@@ -33,16 +36,19 @@ case "$cmd" in
   on)
     require_npm
     log "设置 npm 代理 -> $PROXY_URL"
-    npm config set proxy "$PROXY_URL"
-    npm config set https-proxy "$PROXY_URL"
-    npm config set registry https://registry.npmjs.org/
+    npm config set proxy "$PROXY_URL" --location=user
+    npm config set https-proxy "$PROXY_URL" --location=user
+    npm config set registry https://registry.npmjs.org/ --location=user
     show_config
     ;;
   off)
     require_npm
     log "清理 npm 代理"
-    npm config delete proxy >/dev/null 2>&1 || true
-    npm config delete https-proxy >/dev/null 2>&1 || true
+    for scope in user global; do
+      npm config delete proxy --location="$scope" >/dev/null 2>&1 || true
+      npm config delete https-proxy --location="$scope" >/dev/null 2>&1 || true
+      npm config delete registry --location="$scope" >/dev/null 2>&1 || true
+    done
     show_config
     ;;
   *)

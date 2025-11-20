@@ -23,8 +23,6 @@ require_go() {
 
 show_config() {
   log "GOPROXY: $(go env GOPROXY 2>/dev/null || echo unset)"
-  log "HTTP_PROXY: $(go env HTTP_PROXY 2>/dev/null || echo unset)"
-  log "HTTPS_PROXY: $(go env HTTPS_PROXY 2>/dev/null || echo unset)"
 }
 
 cmd="${1:-}"
@@ -32,17 +30,14 @@ cmd="${1:-}"
 case "$cmd" in
   on)
     require_go
-    log "设置 Go 代理 -> $PROXY_URL (GOPROXY=https://goproxy.cn,direct)"
+    log "设置 Go 代理 (GOPROXY=https://goproxy.cn,direct)"
     go env -w GOPROXY=https://goproxy.cn,direct
-    go env -w HTTP_PROXY="$PROXY_URL"
-    go env -w HTTPS_PROXY="$PROXY_URL"
+    log "HTTP(S) 代理按当前 shell 环境变量生效（由 setproxy 核心负责）"
     show_config
     ;;
   off)
     require_go
     log "清理 Go 代理配置"
-    go env -u HTTP_PROXY
-    go env -u HTTPS_PROXY
     go env -u GOPROXY
     show_config
     ;;
